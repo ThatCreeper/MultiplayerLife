@@ -1,5 +1,6 @@
 #include "std.h"
 #include "wintcp.h"
+#include "packet.h"
 
 int mouseTileX = 0;
 int mouseTileY = 0;
@@ -7,39 +8,6 @@ int userId = -1;
 
 constexpr float maxTickTime = 3;
 float tickTime = 0;
-
-struct ServerboundPacket {
-	enum class Kind {
-		Claim,
-		Register
-	} kind;
-	union {
-		struct {
-			int a;
-			int b;
-		};
-		char name[20];
-	};
-};
-struct ClientboundPacket {
-	enum class Kind {
-		Claim,
-		Id,
-		AddUser,
-		Fail,
-		Tick
-	} kind;
-	union {
-		struct {
-			int a;
-			int b;
-			int c;
-		};
-		int id;
-		char name[20];
-		char failmsg[20];
-	};
-};
 
 int tiles[80 * 25];
 int mapWrapX(int x) {

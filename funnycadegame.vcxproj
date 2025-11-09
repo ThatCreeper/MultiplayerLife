@@ -133,6 +133,7 @@
     <ClCompile Include="funnycadegame.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="packet.h" />
     <ClInclude Include="std.h" />
     <ClInclude Include="wintcp.h" />
   </ItemGroup>
