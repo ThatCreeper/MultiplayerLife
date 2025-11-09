@@ -709,14 +709,18 @@ void gameInitSteps() {
 	clientRegister(name);
 }
 
+void engineLife() {
+	mouseTileX = Clamp(GetMouseX() / 20, 0, 80);
+	mouseTileY = Clamp(GetMouseY() / 20, 0, 25);
+}
+
 int main() {
 	InitWindow(1600, 560, "cade game");
 	
 	gameInitSteps();
 
 	while (!WindowShouldClose()) {
-		mouseTileX = Clamp(GetMouseX() / 20, 0, 80);
-		mouseTileY = Clamp(GetMouseY() / 20, 0, 25);
+		engineLife();
 
 		clientLife();
 
