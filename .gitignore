@@ -1,0 +1,5 @@
+*.user
+vcpkg_installed
+x64
+funnycadegame/x64
+.vs
