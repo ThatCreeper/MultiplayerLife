@@ -4,6 +4,9 @@
 #include <raymath.h>
 #include <cstring>
 #include <optional>
+#include <span>
+#include <algorithm>
+#include <vector>
 #define CloseWindow WinCloseWindowBreaker
 #define ShowCursor WinShowCursorBreaker
 #include <WinSock2.h>
@@ -529,6 +532,15 @@ PCK(Tick) {
 }
 #undef PCK
 
+template<size_t N>
+int fuzzyMedian(int (&values)[N]) {
+	int middle = std::clamp(N / 2 + GetRandomValue(-1, 1), 0ull, N);
+	int sorted[N];
+	std::copy(values, values + N, sorted);
+	std::nth_element(sorted, sorted + middle, sorted + N);
+	return sorted[middle];
+}
+
 void serverLife() {
 	if (!isServer) return;
 	tickTime += GetFrameTime();
@@ -538,15 +550,16 @@ void serverLife() {
 	mapClearB();
 	for (int y = 0; y < 25; y++) {
 		for (int x = 0; x < 80; x++) {
-			int nA=mapGetTile(x-1,y-1), nB=mapGetTile(x  ,y-1), nC=mapGetTile(x+1,y-1),
-				nD=mapGetTile(x-1,y  ), t =mapGetTile(x,  y  ), nF=mapGetTile(x+1,y  ),
-				nG=mapGetTile(x-1,y+1), nH=mapGetTile(x,  y+1), nI=mapGetTile(x+1,y+1);
-#define N(x) ((n##x)!=0)
-			int n = N(A) + N(B) + N(C) + N(D) + N(F) + N(G) + N(H) + N(I);
-#undef N
-			int na = nA + nB + nC + nD + nF + nG + nH + nI;
+#define T mapGetTile
+			int ns[] = { T(x-1,y-1), T(x  ,y-1), T(x+1,y-1),
+			             T(x-1,y  ),             T(x+1,y  ),
+			             T(x-1,y+1), T(x,  y+1), T(x+1,y+1)};
+			int t = T(x, y);
+#undef T
+			int n = 0;
+			for (int N : ns) n += N != 0;
 			if (t && (n == 2 || n == 3)) mapSetTileB(x, y, t);
-			if (!t && n == 3) mapSetTileB(x, y, na / n); // al gore rhythm
+			if (!t && n == 3) mapSetTileB(x, y, fuzzyMedian(ns));
 		}
 	}
 
