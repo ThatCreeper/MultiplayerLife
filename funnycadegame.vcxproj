@@ -132,6 +132,10 @@
   <ItemGroup>
     <ClCompile Include="funnycadegame.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="std.h" />
+    <ClInclude Include="wintcp.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
