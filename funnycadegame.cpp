@@ -13,6 +13,57 @@
 #undef DrawText
 #define strncpy strncpy_s
 
+template <class T, size_t N>
+struct inplace_vector {
+	union {
+		T values[N];
+		int _dummy;
+	};
+	size_t count = 0;
+
+	inplace_vector() : _dummy(0) {}
+	~inplace_vector() {
+		for (T &t : *this) {
+			t.~T();
+		}
+	}
+	inplace_vector(const inplace_vector<T, N> &other) = delete;
+	inplace_vector(inplace_vector<T, N> &&other) = delete;
+	inplace_vector<T, N> &operator =(const inplace_vector<T, N> &other) = delete;
+	inplace_vector<T, N> &operator =(inplace_vector<T, N> &&other) = delete;
+
+	T *begin() {
+		return values;
+	}
+	T *end() {
+		return values + count;
+	}
+
+	size_t size() {
+		return count;
+	}
+	size_t capacity() {
+		return N;
+	}
+
+	template<class... Args>
+	std::optional<T &> try_emplace_back(Args&&... args) {
+		if (full()) return {};
+		T *out = values[count++];
+		new(out) T(std::forward(args)...);
+		return *out;
+	}
+
+	bool full() {
+		return count >= N;
+	}
+
+	std::optional<T &>try_at(int pos) {
+		if (pos >= count) return {};
+		return values[pos];
+	}
+};
+
 int mouseTileX = 0;
 int mouseTileY = 0;
 int userId = -1;
@@ -88,23 +139,28 @@ void mapClearB() {
 struct Users {
 	struct User {
 		char name[20];
+		int idx;
 	};
-	User users[6];
-	int userc = 0;
+	inplace_vector<User, 6> users;
 
 	std::optional<int> Add(char name[20]) {
-		for (int i = 0; i < userc; i++) {
-			if (strncmp(users[i].name, name, 20) == 0) {
+		for (int i = 0; i < users.size(); i++) {
+			if (strncmp(users.try_at(i)->name, name, 20) == 0) {
 				return i;
 			}
 		}
-		if (userc >= 6) return {};
-		memcpy(users[userc].name, name, 20);
-		return userc++;
+		if (users.full()) return {};
+		int idx = users.size();
+		User &user = *users.try_emplace_back();
+		memcpy(user.name, name, 20);
+		user.idx = idx;
+		return idx;
 	}
-	User *Get(int id) {
-		if (id < 0 || id >= userc) return nullptr;
-		return &users[id];
+	std::optional<User &> Get(int id) {
+		return users.try_at(id);
+	}
+	size_t size() {
+		return users.size();
 	}
 } users;
 
@@ -272,11 +328,11 @@ PCK(Claim) {
 PCK(Register) {
 	auto id = users.Add(packet.name);
 	if (id) {
-		for (int i = 0; i < users.userc; i++) {
+		for (Users::User &user : users.users) {
 			ClientboundPacket packet;
 			packet.kind = ClientboundPacket::Kind::AddUser;
-			memcpy(packet.name, users.users[i].name, 20);
-			if (i == id) {
+			memcpy(packet.name, user.name, 20);
+			if (user.idx == id) {
 				serverSendPacketAll(packet);
 			}
 			else {
@@ -465,10 +521,11 @@ void renderBoard() {
 }
 
 void renderUsers() {
-	for (int i = 0; i < users.userc; i++) {
+	for (const Users::User &user : users.users) {
+		int i = user.idx;
 		int y = 20 * (i % 3);
 		int x = (1600 / 4) * (i / 3);
-		DrawText(TextFormat("%s%s - %d", users.users[i].name, i == userId ? " (you)" : "", playerScores[i]), x, 500 + y, 20, colors[i]);
+		DrawText(TextFormat("%s%s - %d", user.name, i == userId ? " (you)" : "", playerScores[i]), x, 500 + y, 20, colors[i]);
 	}
 }
 
