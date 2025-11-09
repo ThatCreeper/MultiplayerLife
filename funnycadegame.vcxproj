@@ -131,8 +131,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="funnycadegame.cpp" />
+    <ClCompile Include="gamestate.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="gamestate.h" />
     <ClInclude Include="packet.h" />
     <ClInclude Include="std.h" />
     <ClInclude Include="wintcp.h" />
