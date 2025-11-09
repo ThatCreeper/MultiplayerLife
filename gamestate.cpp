@@ -11,6 +11,17 @@ float tickTime = 0;
 int tiles[80 * 25];
 int tilesb[80 * 25]; // Only used on server
 
+bool isServer = false;
+unsigned __int64 serverSocket;
+Color colors[] = {
+	RED,
+	GREEN,
+	BLUE,
+	PURPLE,
+	ORANGE,
+	GRAY
+};
+
 int mapWrapX(int x) {
 	while (x < 0) x += 80;
 	while (x >= 80) x -= 80;

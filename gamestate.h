@@ -1,5 +1,7 @@
 #pragma once
 
+#include "std.h"
+
 extern int mouseTileX;
 extern int mouseTileY;
 extern int userId;
@@ -9,6 +11,10 @@ extern float tickTime;
 
 extern int tiles[80 * 25];
 extern int tilesb[80 * 25]; // Only used on server
+
+extern bool isServer;
+extern unsigned __int64 serverSocket;
+extern Color colors[];
 
 int mapWrapX(int x);
 int mapWrapY(int y);
