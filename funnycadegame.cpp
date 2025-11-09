@@ -15,7 +15,7 @@
 
 int mouseTileX = 0;
 int mouseTileY = 0;
-int userId = 0;
+int userId = -1;
 
 constexpr float maxTickTime = 3;
 float tickTime = 0;
@@ -243,98 +243,123 @@ void clientSendPacket(ServerboundPacket &packet) {
 		send(serverSocket, reinterpret_cast<const char *>(&packet), sizeof(packet), 0);
 }
 
+#define PCK(kind) \
+	case ServerboundPacket::Kind::kind: \
+		serverAcceptPacket##kind(packet, connection); \
+		break
 void serverAcceptPacket(ServerboundPacket &packet, Connection &connection) {
 	assert(isServer);
 	switch (packet.kind) {
-	case ServerboundPacket::Kind::Claim:
-		if (mapGetTile(packet.a, packet.b) == 0) {
-			mapSetTile(packet.a, packet.b, connection.id + 1);
-			ClientboundPacket p;
-			p.kind = ClientboundPacket::Kind::Claim;
-			p.a = packet.a;
-			p.b = packet.b;
-			p.c = connection.id + 1;
-			serverSendPacketAll(p);
-		}
-		break;
-	case ServerboundPacket::Kind::Register: {
-		auto id = users.Add(packet.name);
-		if (id) {
-			for (int i = 0; i < users.userc; i++) {
-				ClientboundPacket packet;
-				packet.kind = ClientboundPacket::Kind::AddUser;
-				memcpy(packet.name, users.users[i].name, 20);
-				if (i == id) {
-					serverSendPacketAll(packet);
-				}
-				else {
-					serverSendPacket(packet, connection);
-				}
-			}
-
-			ClientboundPacket packet;
-			packet.kind = ClientboundPacket::Kind::Id;
-			packet.id = *id;
-			connection.id = *id;
-			serverSendPacket(packet, connection);
-			for (int y = 0; y < 25; y++) {
-				for (int x = 0; x < 80; x++) {
-					int tile = mapGetTile(x, y);
-					if (tile == 0) continue;
-					ClientboundPacket packet;
-					packet.kind = ClientboundPacket::Kind::Claim;
-					packet.a = x;
-					packet.b = y;
-					packet.c = tile;
-					serverSendPacket(packet, connection);
-				}
-			}
-		}
-		else {
-			ClientboundPacket packet;
-			packet.kind = ClientboundPacket::Kind::Fail;
-			strncpy(packet.failmsg, "No space!", 20);
-			serverSendPacket(packet, connection);
-		}
-		break;
-	} default:
-		assert(0);
-	}
-}
-
-int playerScores[6] = { 0 };
-
-void clientAcceptPacket(ClientboundPacket &packet) {
-	switch (packet.kind) {
-	case ClientboundPacket::Kind::AddUser:
-		users.Add(packet.name);
-		break;
-	case ClientboundPacket::Kind::Claim:
-		mapSetTile(packet.a, packet.b, packet.c);
-		break;
-	case ClientboundPacket::Kind::Fail:
-		MessageBoxA(nullptr, "Fail", TextFormat("%.*s", 20, packet.failmsg), MB_OK);
-		assert(0);
-		break;
-	case ClientboundPacket::Kind::Id:
-		userId = packet.id;
-		break;
-	case ClientboundPacket::Kind::Tick:
-		tickTime = 0;
-		memset(playerScores, 0, sizeof(playerScores));
-		for (int y = 0; y < 25; y++) {
-			for (int x = 0; x < 80; x++) {
-				int t = mapGetTile(x, y);
-				if (t) playerScores[t - 1]++;
-			}
-		}
-		break;
+		PCK(Claim);
+		PCK(Register);
 	default:
 		assert(0);
 	}
 }
+#undef PCK
+#define PCK(kind) void serverAcceptPacket##kind(ServerboundPacket &packet, Connection &connection)
+PCK(Claim) {
+	if (mapGetTile(packet.a, packet.b) == 0) {
+		mapSetTile(packet.a, packet.b, connection.id + 1);
+		ClientboundPacket p;
+		p.kind = ClientboundPacket::Kind::Claim;
+		p.a = packet.a;
+		p.b = packet.b;
+		p.c = connection.id + 1;
+		serverSendPacketAll(p);
+	}
+}
+PCK(Register) {
+	auto id = users.Add(packet.name);
+	if (id) {
+		for (int i = 0; i < users.userc; i++) {
+			ClientboundPacket packet;
+			packet.kind = ClientboundPacket::Kind::AddUser;
+			memcpy(packet.name, users.users[i].name, 20);
+			if (i == id) {
+				serverSendPacketAll(packet);
+			}
+			else {
+				serverSendPacket(packet, connection);
+			}
+		}
+
+		ClientboundPacket packet;
+		packet.kind = ClientboundPacket::Kind::Id;
+		packet.id = *id;
+		connection.id = *id;
+		serverSendPacket(packet, connection);
+		for (int y = 0; y < 25; y++) {
+			for (int x = 0; x < 80; x++) {
+				int tile = mapGetTile(x, y);
+				if (tile == 0) continue;
+				ClientboundPacket packet;
+				packet.kind = ClientboundPacket::Kind::Claim;
+				packet.a = x;
+				packet.b = y;
+				packet.c = tile;
+				serverSendPacket(packet, connection);
+			}
+		}
+	}
+	else {
+		ClientboundPacket packet;
+		packet.kind = ClientboundPacket::Kind::Fail;
+		strncpy(packet.failmsg, "No space!", 20);
+		serverSendPacket(packet, connection);
+	}
+}
+#undef PCK
+int playerScores[6] = { 0 };
+
+#define PCK(kind) \
+	case ClientboundPacket::Kind::kind: \
+		clientAcceptPacket##kind(packet); \
+		break
+void clientAcceptPacket(ClientboundPacket &packet) {
+	switch (packet.kind) {
+		PCK(AddUser);
+		PCK(Claim);
+		PCK(Fail);
+		PCK(Id);
+		PCK(Tick);
+	default:
+		assert(0);
+	}
+}
+#undef PCK
+#define PCK(kind) void clientAcceptPacket##kind(ClientboundPacket &packet)
+PCK(AddUser) {
+	users.Add(packet.name);
+}
+PCK(Claim) {
+	mapSetTile(packet.a, packet.b, packet.c);
+}
+PCK(Fail) {
+	MessageBoxA(nullptr, "Fail", TextFormat("%.*s", 20, packet.failmsg), MB_OK);
+	assert(0);
+}
+PCK(Id) {
+	userId = packet.id;
+}
+PCK(Tick) {
+	tickTime = 0;
+	memset(playerScores, 0, sizeof(playerScores));
+	for (int y = 0; y < 25; y++) {
+		for (int x = 0; x < 80; x++) {
+			int t = mapGetTile(x, y);
+			if (t) playerScores[t - 1]++;
+		}
+	}
+}
+#undef PCK
 
 void serverLife() {
+	if (!isServer) return;
+	tickTime += GetFrameTime();
+	if (tickTime < maxTickTime) return;
+	tickTime = 0;
+
 	mapClearB();
 	for (int y = 0; y < 25; y++) {
 		for (int x = 0; x < 80; x++) {
@@ -365,6 +390,10 @@ void serverLife() {
 			}
 		}
 	}
+
+	ClientboundPacket packet;
+	packet.kind = ClientboundPacket::Kind::Tick;
+	serverSendPacketAll(packet);
 }
 
 Color colors[] = {
@@ -413,9 +442,55 @@ void textentry(char *out, int count, const char *prefix, Color bg, Color fg) {
 	}
 }
 
-int main() {
-	InitWindow(1600, 560, "cade game");
+void clientLife() {
+	if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+		ServerboundPacket packet;
+		packet.kind = ServerboundPacket::Kind::Claim;
+		packet.a = mouseTileX;
+		packet.b = mouseTileY;
+		clientSendPacket(packet);
+	}
+}
 
+void renderBoard() {
+	for (int y = 0; y < 25; y++) {
+		for (int x = 0; x < 80; x++) {
+			int tile = mapGetTile(x, y);
+			if (tile) DrawRectangle(x * 20, y * 20, 20, 20, colors[tile - 1]);
+
+			DrawRectangleLines(x * 20 + 1, y * 20 + 1, 19, 19,
+				(mouseTileX == x && mouseTileY == y) ? YELLOW : DARKGRAY);
+		}
+	}
+}
+
+void renderUsers() {
+	for (int i = 0; i < users.userc; i++) {
+		int y = 20 * (i % 3);
+		int x = (1600 / 4) * (i / 3);
+		DrawText(TextFormat("%s%s - %d", users.users[i].name, i == userId ? " (you)" : "", playerScores[i]), x, 500 + y, 20, colors[i]);
+	}
+}
+
+void renderTicker() {
+	DrawCircle(1570, 530, 25, Fade(colors[userId], 1 - (tickTime / maxTickTime) * 2));
+	DrawCircleSector({ 1570, 530 }, 25, -90, 360 * tickTime / maxTickTime - 90, 20, colors[userId]);
+}
+
+void renderHud() {
+	renderUsers();
+	renderTicker();
+}
+
+void clientRegister(char name[20]) {
+	assert(userId == -1);
+	ServerboundPacket packet;
+	packet.kind = ServerboundPacket::Kind::Register;
+	strncpy(packet.name, name, 20);
+	clientSendPacket(packet);
+}
+
+void gamePickIsServer() {
 	while (true) {
 		if (IsKeyPressed(KEY_S)) {
 			isServer = true;
@@ -431,65 +506,39 @@ int main() {
 		DrawText("Press S to serve or C to connect", 0, 0, 40, WHITE);
 		EndDrawing();
 	}
+}
+
+void gameInitSteps() {
+	gamePickIsServer();
+
 	char name[20] = "\0";
 	textentry(name, 20, "Name", BLUE, WHITE);
 
 	if (isServer) serverOpen();
 	else clientOpen("127.0.0.1");
 
-	ServerboundPacket packet;
-	packet.kind = ServerboundPacket::Kind::Register;
-	strncpy(packet.name, name, 20);
-	clientSendPacket(packet);
+	clientRegister(name);
+}
+
+int main() {
+	InitWindow(1600, 560, "cade game");
+	
+	gameInitSteps();
 
 	while (!WindowShouldClose()) {
 		mouseTileX = Clamp(GetMouseX() / 20, 0, 80);
 		mouseTileY = Clamp(GetMouseY() / 20, 0, 25);
 
-		if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-			ServerboundPacket packet;
-			packet.kind = ServerboundPacket::Kind::Claim;
-			packet.a = mouseTileX;
-			packet.b = mouseTileY;
-			clientSendPacket(packet);
-		}
+		clientLife();
 
 		netRecievePackets();
-
-		tickTime += GetFrameTime();
-		if (tickTime >= maxTickTime) {
-			tickTime = 0;
-			
-			if (isServer) {
-				serverLife();
-
-				ClientboundPacket packet;
-				packet.kind = ClientboundPacket::Kind::Tick;
-				serverSendPacketAll(packet);
-			}
-		}
+		serverLife();
 
 		BeginDrawing();
 		ClearBackground(BLACK);
 
-		for (int y = 0; y < 25; y++) {
-			for (int x = 0; x < 80; x++) {
-				int tile = mapGetTile(x, y);
-				if (tile) DrawRectangle(x * 20, y * 20, 20, 20, colors[tile - 1]);
-
-				DrawRectangleLines(x * 20 + 1, y * 20 + 1, 19, 19,
-					(mouseTileX == x && mouseTileY == y) ? YELLOW : DARKGRAY);
-			}
-		}
-
-		for (int i = 0; i < users.userc; i++) {
-			int y = 20 * (i % 3);
-			int x = (1600 / 4) * (i / 3);
-			DrawText(TextFormat("%s%s - %d", users.users[i].name, i == userId ? " (you)" : "", playerScores[i]), x, 500 + y, 20, colors[i]);
-		}
-
-		DrawCircle(1570, 530, 25, Fade(colors[userId], 1 - (tickTime / maxTickTime) * 2));
-		DrawCircleSector({ 1570, 530 }, 25, -90, 360 * tickTime / maxTickTime - 90, 20, colors[userId]);
+		renderBoard();
+		renderHud();
 
 		EndDrawing();
 	}
