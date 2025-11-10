@@ -11,8 +11,8 @@ size_t serverLoopbackSize;
 
 #define SEND_A_PACKET_ALL(kind, pck) serverSendPacketAll(ClientboundPacketKind::kind, &pck, sizeof(pck))
 #define SEND_A_PACKET(kind, pck, conn) serverSendPacket(ClientboundPacketKind::kind, &pck, sizeof(pck), conn)
-#define SEND_PACKET(kind, cons, conn) { ClientboundPacket##kind pkt_p cons; SEND_A_PACKET(kind, pkt_p, conn); }
-#define SEND_PACKET_ALL(kind, cons) { ClientboundPacket##kind pkt_p cons; SEND_A_PACKET_ALL(kind, pkt_p); }
+#define SEND_PACKET(kind, conn, ...) { ClientboundPacket##kind pkt_p __VA_ARGS__; SEND_A_PACKET(kind, pkt_p, conn); }
+#define SEND_PACKET_ALL(kind, ...) { ClientboundPacket##kind pkt_p __VA_ARGS__; SEND_A_PACKET_ALL(kind, pkt_p); }
 
 void serverOpen() {
 	WSADATA wsaData;
@@ -203,11 +203,11 @@ PCK(Register) {
 		}
 
 		connection.id = *id;
-		SEND_PACKET(Id, { .id = *id }, connection);
+		SEND_PACKET(Id, connection, { .id = *id });
 		serverSendMap(connection);
 	}
 	else {
-		SEND_PACKET(Fail, { .failmsg{"No space!"} }, connection);
+		SEND_PACKET(Fail, connection, { .failmsg{"No space!"} });
 	}
 }
 PCK(Chat) {

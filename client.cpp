@@ -7,6 +7,9 @@
 const void *clientLoopbackData;
 size_t clientLoopbackSize;
 
+#define SEND_A_PACKET(kind, pck) clientSendPacket(ServerboundPacketKind::kind, &pck, sizeof(pck))
+#define SEND_PACKET(kind, ...) { ServerboundPacket##kind pck_s __VA_ARGS__; SEND_A_PACKET(kind, pck_s); }
+
 void clientOpen(const char *host) {
 	WSADATA wsaData;
 	assert(!WSAStartup(MAKEWORD(2, 2), &wsaData));
@@ -28,9 +31,9 @@ void clientOpen(const char *host) {
 
 void clientRegister(const fixed_string<20> &name) {
 	assert(userId == -1);
-	ServerboundPacketRegister packet;
+	ServerboundPacketRegister packet{};
 	packet.name.copy_from(name);
-	clientSendPacket(ServerboundPacketKind::Register, &packet, sizeof(packet));
+	SEND_A_PACKET(Register, packet);
 }
 
 void clientSendPacket(ServerboundPacketKind packet, const void *data, size_t size) {
@@ -136,15 +139,12 @@ PCK(Chat) {
 #undef PCK
 
 void clientClaim(int x, int y) {
-	ServerboundPacketClaim packet;
-	packet.x = x;
-	packet.y = y;
-	clientSendPacket(ServerboundPacketKind::Claim, &packet, sizeof(packet));
+	SEND_PACKET(Claim, { .x = x, .y = y });
 }
 
 void clientUpdateChat()
 {
-	ServerboundPacketChat packet;
+	ServerboundPacketChat packet{};
 	packet.chat.copy_from(globalChat);
-	clientSendPacket(ServerboundPacketKind::Chat, &packet, sizeof(packet));
+	SEND_A_PACKET(Chat, packet);
 }
