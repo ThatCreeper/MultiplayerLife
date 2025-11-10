@@ -135,6 +135,18 @@ void serverLife() {
 	serverSendPacketAll(ClientboundPacketKind::Tick, &packet, sizeof(packet));
 }
 
+void serverSendMap(Connection &connection) {
+	FORMAPXY(x, y) {
+		int tile = mapGetTile(x, y);
+		if (tile == 0) continue;
+		ClientboundPacketClaim packet;
+		packet.x = x;
+		packet.y = y;
+		packet.color = tile;
+		serverSendPacket(ClientboundPacketKind::Claim, &packet, sizeof(packet), connection);
+	}
+}
+
 void serverAcceptPacketLoopback(ServerboundPacketKind packet, const void *data, size_t size)
 {
 	serverLoopbackData = data;
@@ -190,17 +202,7 @@ PCK(Register) {
 		packet.id = *id;
 		connection.id = *id;
 		serverSendPacket(ClientboundPacketKind::Id, &packet, sizeof(packet), connection);
-		for (int y = 0; y < 25; y++) {
-			for (int x = 0; x < 80; x++) {
-				int tile = mapGetTile(x, y);
-				if (tile == 0) continue;
-				ClientboundPacketClaim packet;
-				packet.x = x;
-				packet.y = y;
-				packet.color = tile;
-				serverSendPacket(ClientboundPacketKind::Claim, &packet, sizeof(packet), connection);
-			}
-		}
+		serverSendMap(connection);
 	}
 	else {
 		ClientboundPacketFail packet;
