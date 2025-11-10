@@ -57,7 +57,9 @@ void serverRecievePackets() {
 		}
 		if (int e = WSAGetLastError(); e != WSAEWOULDBLOCK) {
 			auto user = users.Get(connection.id);
-			MessageBoxA(nullptr, TextFormat("%ull: %s Disconnect", clientSockets.index(connection), user ? user->name.bytes() : "(???)"), TextFormat("Conn error: %d", e), MB_OK);
+			auto err = std::format("{}: {} Disconnect", *clientSockets.index(connection), user ? user->name.bytes() : "(???)");
+			auto desc = std::format("Conn error: {}", e);
+			MessageBoxA(nullptr, err.c_str(), desc.c_str(), MB_OK);
 			clientSockets.remove_safe_iter(connection); // This is fine(-ish) because it doesn't rearrange anything
 		}
 	}

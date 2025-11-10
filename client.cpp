@@ -88,7 +88,8 @@ void clientRecievePackets()
 		clientAcceptPacket(packet);
 	}
 	if (int e = WSAGetLastError(); e != WSAEWOULDBLOCK) {
-		MessageBoxA(nullptr, "srv conn: Error", TextFormat("Conn error: %d", e), MB_OK);
+		auto str = std::format("Conn error: {}", e);
+		MessageBoxA(nullptr, "srv conn: Error", str.c_str(), MB_OK);
 		exit(1);
 	}
 }

@@ -3,6 +3,10 @@
 #include "gamestate.h"
 #include "user.h"
 
+void DrawText(std::string_view text, int x, int y, int size, Color color) {
+	DrawText(text.data(), x, y, size, color);
+}
+
 void renderBoard() {
 	for (Particle &particle : particles) {
 		particle.size += GetFrameTime() * 80;
@@ -28,7 +32,7 @@ void renderUsers() {
 		int i = user.idx;
 		int y = 20 * (i % 3);
 		int x = (1600 / 4) * (i / 3);
-		DrawText(TextFormat("%s%s - %d", user.name.bytes(), i == userId ? " (you)" : "", playerScores[i]), x, 500 + y, 20, colors[i]);
+		DrawText(std::format("{}{} - {}", user.name.bytes(), i == userId ? " (you)" : "", playerScores[i]), x, 500 + y, 20, colors[i]);
 	}
 }
 

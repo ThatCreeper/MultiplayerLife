@@ -16,6 +16,7 @@
 #include <array>
 #include <format>
 #include <print>
+#include <string_view>
 #define strncpy strncpy_s
 
 // T* with some extra safety
@@ -243,6 +244,9 @@ struct reusable_inplace_vector {
 template <size_t N>
 struct fixed_string {
 public:
+	using longer = fixed_string<N + 1>;
+	using shorter = fixed_string<N - 1>;
+
 	char buf[N];
 
 	fixed_string() = default;
@@ -255,7 +259,7 @@ public:
 		clear();
 		std::copy(s, s + N1, buf);
 	}
-	explicit fixed_string(const fixed_string<N + 1> &s) {
+	explicit fixed_string(const longer &s) {
 		clear();
 		copy_from(s);
 	}
@@ -279,7 +283,7 @@ public:
 	void copy_from(const fixed_string<N1> &s) {
 		std::copy(s.bytes(), s.bytes() + N1, buf);
 	}
-	void copy_from(const fixed_string<N + 1> &s) {
+	void copy_from(const longer &s) {
 		assert(s[N] == '\0');
 		std::copy(s.bytes(), s.bytes() + N, buf);
 	}
@@ -338,9 +342,16 @@ public:
 	}
 
 	// NOT REAL!
-	const fixed_string<N - 1> &fake_ref_short() {
+	const shorter &fake_ref_short() {
 		assert(buf[N - 1] == '\0');
-		return *reinterpret_cast<fixed_string<N - 1> *>(this);
+		return *reinterpret_cast<shorter *>(this);
+	}
+
+	std::string elongate() {
+		std::string out;
+		out.resize(N, 0);
+		std::copy(buf, buf + N, out.begin());
+		return out;
 	}
 };
 

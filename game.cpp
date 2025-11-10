@@ -4,6 +4,7 @@
 #include "client.h"
 #include "server.h"
 #include "user.h"
+#include "render.h"
 
 template <size_t N>
 void gameTextEntry(fixed_string<N> &out, const char *prefix, Color bg, Color fg) {
@@ -33,7 +34,7 @@ void gameTextEntry(fixed_string<N> &out, const char *prefix, Color bg, Color fg)
 		BeginDrawing();
 		ClearBackground(bg);
 
-		DrawText(TextFormat("%s: \"%s\"", prefix, out.bytes()), 0, 0, 40, fg);
+		DrawText(std::format("{}: \"{}\"", prefix, out.bytes()), 0, 0, 40, fg);
 
 		EndDrawing();
 	}
@@ -134,7 +135,8 @@ PCK(Claim) {
 }
 PCK(Fail) {
 	PCKD(Fail);
-	MessageBoxA(nullptr, "Fail", TextFormat("%.*s", 20, packet.failmsg.bytes()), MB_OK);
+	auto str = packet.failmsg.elongate();
+	MessageBoxA(nullptr, "Fail", str.c_str(), MB_OK);
 	assert(0);
 }
 PCK(Id) {
