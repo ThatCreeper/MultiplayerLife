@@ -244,13 +244,12 @@ struct reusable_inplace_vector {
 template <size_t N>
 struct fixed_string {
 public:
-	using longer = fixed_string<N + 1>;
+	using cstr = fixed_string<N + 1>;
 	using shorter = fixed_string<N - 1>;
 
 	char buf[N];
 
-	fixed_string() = default;
-	fixed_string(char zero) {
+	fixed_string() {
 		clear();
 	}
 	template <size_t N1>
@@ -259,7 +258,7 @@ public:
 		clear();
 		std::copy(s, s + N1, buf);
 	}
-	explicit fixed_string(const longer &s) {
+	explicit fixed_string(const cstr &s) {
 		clear();
 		copy_from(s);
 	}
@@ -283,7 +282,7 @@ public:
 	void copy_from(const fixed_string<N1> &s) {
 		std::copy(s.bytes(), s.bytes() + N1, buf);
 	}
-	void copy_from(const longer &s) {
+	void copy_from(const cstr &s) {
 		assert(s[N] == '\0');
 		std::copy(s.bytes(), s.bytes() + N, buf);
 	}
@@ -336,22 +335,27 @@ public:
 	}
 
 	template <size_t N1>
-	bool equals(const fixed_string<N1> &other) {
+	bool equals(const fixed_string<N1> &other) const {
 		if (length() != other.length()) return false;
 		return strncmp(bytes(), other.bytes(), std::min(N, N1)) == 0;
 	}
 
 	// NOT REAL!
-	const shorter &fake_ref_short() {
+	const shorter &fake_ref_short() const {
 		assert(buf[N - 1] == '\0');
-		return *reinterpret_cast<shorter *>(this);
+		return *reinterpret_cast<const shorter *>(this);
 	}
 
-	std::string elongate() {
+	std::string elongate() const {
 		std::string out;
 		out.resize(N, 0);
 		std::copy(buf, buf + N, out.begin());
 		return out;
+	}
+
+	operator std::string_view() const {
+		assert(buf[N - 1] == '\0');
+		return std::string_view(buf, N - 1);
 	}
 };
 

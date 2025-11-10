@@ -4,7 +4,7 @@
 
 struct Users {
 	struct User {
-		fixed_string<21> name{ 0 };
+		fixed_string<20>::cstr name;
 		int idx;
 	};
 	inplace_vector<User, 6> users;

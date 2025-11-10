@@ -25,7 +25,7 @@ extern reusable_inplace_vector<Particle, 200> particles;
 extern bool isServer;
 extern unsigned __int64 serverSocket;
 extern Color colors[];
-extern fixed_string<51> globalChat;
+extern fixed_string<50>::cstr globalChat;
 extern int globalChatAuthor;
 
 extern int playerScores[6];

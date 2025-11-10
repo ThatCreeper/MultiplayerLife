@@ -61,7 +61,7 @@ void gamePickIsServer() {
 void gameInitSteps() {
 	gamePickIsServer();
 
-	fixed_string<21> name{ 0 };
+	fixed_string<20>::cstr name;
 	gameTextEntry(name, "Name", BLUE, WHITE);
 
 	if (isServer) serverOpen();

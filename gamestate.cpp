@@ -24,7 +24,7 @@ Color colors[] = {
 	ORANGE,
 	GRAY
 };
-fixed_string<51> globalChat{ 0 };
+fixed_string<50>::cstr globalChat;
 int globalChatAuthor = 0;
 
 int playerScores[6] = { 0 };
