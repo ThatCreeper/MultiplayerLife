@@ -35,19 +35,22 @@ void serverOpen() {
 	ioctlsocket(serverSocket, FIONBIO, &nonblock);
 }
 
+void serverAcceptConnections() {
+	if (clientSockets.full()) return;
+	SOCKET socket = accept(serverSocket, nullptr, nullptr);
+	if (socket != INVALID_SOCKET) {
+		unsigned long nonblock = 1;
+		ioctlsocket(socket, FIONBIO, &nonblock);
+		Connection &connection = *clientSockets.try_emplace_replace();
+		connection.id = -1;
+		connection.socket = socket;
+	}
+}
+
 void serverRecievePackets() {
 	assert(isServer);
 
-	if (!clientSockets.full()) {
-		SOCKET socket = accept(serverSocket, nullptr, nullptr);
-		if (socket != INVALID_SOCKET) {
-			unsigned long nonblock = 1;
-			ioctlsocket(socket, FIONBIO, &nonblock);
-			Connection &connection = *clientSockets.try_emplace_replace();
-			connection.id = -1;
-			connection.socket = socket;
-		}
-	}
+	serverAcceptConnections();
 
 	ServerboundPacketKind packet;
 	for (Connection &connection : clientSockets) {
@@ -68,8 +71,9 @@ void serverRecievePackets() {
 void serverSendPacket(ClientboundPacketKind packet, const void *data, size_t size, Connection &connection) {
 	assert(isServer);
 	void clientAcceptPacketLoopback(ClientboundPacketKind, const void *, size_t);
-	if (&connection == &loopbackConnection)
+	if (&connection == &loopbackConnection) {
 		clientAcceptPacketLoopback(packet, data, size);
+	}
 	else {
 		send(connection.socket, reinterpret_cast<const char *>(&packet), sizeof(packet), 0);
 		send(connection.socket, reinterpret_cast<const char *>(data), size, 0);
@@ -93,15 +97,6 @@ void serverRecieve(void *out, size_t size, Connection &connection) {
 	else {
 		recv(connection.socket, (char *)out, size, 0);
 	}
-}
-
-template<size_t N>
-int fuzzyMedian(int(&values)[N]) {
-	int middle = std::clamp(N / 2 + GetRandomValue(-1, 1), 0ull, N);
-	int sorted[N];
-	std::copy(values, values + N, sorted);
-	std::nth_element(sorted, sorted + middle, sorted + N);
-	return sorted[middle];
 }
 
 void serverUpdateTilesC() {
