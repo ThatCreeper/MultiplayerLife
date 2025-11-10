@@ -7,6 +7,50 @@
 #include "render.h"
 
 template <size_t N>
+void gameTextEntry(fixed_string<N> &out, const char *prefix, Color bg, Color fg);
+
+void gameInitSteps() {
+	gamePickIsServer();
+
+	fixed_string<20>::cstr name;
+	gameTextEntry(name, "Name", BLUE, WHITE);
+
+	if (isServer) serverOpen();
+	else clientOpen("127.0.0.1");
+
+	clientRegister(name.fake_ref_short());
+}
+
+void gameLife() {
+	mouseTileX = Clamp(GetMouseX() / 20, 0, 80);
+	mouseTileY = Clamp(GetMouseY() / 20, 0, 25);
+
+	if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+		clientClaim(mouseTileX, mouseTileY);
+	}
+
+	gameUpdateChat();
+}
+
+void gamePickIsServer() {
+	while (true) {
+		if (IsKeyPressed(KEY_S)) {
+			isServer = true;
+			break;
+		}
+		if (IsKeyPressed(KEY_C)) {
+			isServer = false;
+			break;
+		}
+
+		BeginDrawing();
+		ClearBackground(RED);
+		DrawText("Press S to serve or C to connect", 0, 0, 40, WHITE);
+		EndDrawing();
+	}
+}
+
+template <size_t N>
 void gameTextEntry(fixed_string<N> &out, const char *prefix, Color bg, Color fg) {
 	while (true) {
 		// Get char pressed (unicode character) on the queue
@@ -40,36 +84,6 @@ void gameTextEntry(fixed_string<N> &out, const char *prefix, Color bg, Color fg)
 	}
 }
 
-void gamePickIsServer() {
-	while (true) {
-		if (IsKeyPressed(KEY_S)) {
-			isServer = true;
-			break;
-		}
-		if (IsKeyPressed(KEY_C)) {
-			isServer = false;
-			break;
-		}
-
-		BeginDrawing();
-		ClearBackground(RED);
-		DrawText("Press S to serve or C to connect", 0, 0, 40, WHITE);
-		EndDrawing();
-	}
-}
-
-void gameInitSteps() {
-	gamePickIsServer();
-
-	fixed_string<20>::cstr name;
-	gameTextEntry(name, "Name", BLUE, WHITE);
-
-	if (isServer) serverOpen();
-	else clientOpen("127.0.0.1");
-
-	clientRegister(name.fake_ref_short());
-}
-
 void gameUpdateChat() {
 	// Get char pressed (unicode character) on the queue
 	int key = GetCharPressed();
@@ -99,17 +113,6 @@ void gameUpdateChat() {
 		SetWindowTitle(globalChat.bytes());
 		clientUpdateChat();
 	}
-}
-
-void gameLife() {
-	mouseTileX = Clamp(GetMouseX() / 20, 0, 80);
-	mouseTileY = Clamp(GetMouseY() / 20, 0, 25);
-
-	if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-		clientClaim(mouseTileX, mouseTileY);
-	}
-
-	gameUpdateChat();
 }
 
 #define PCK(kind) void clientAcceptPacket##kind()
