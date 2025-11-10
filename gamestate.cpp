@@ -4,7 +4,7 @@
 
 int mouseTileX = 0;
 int mouseTileY = 0;
-int userId = -1;
+size_t userId = (size_t) - 1;
 
 float tickTime = 0;
 
@@ -25,7 +25,7 @@ Color colors[] = {
 	GRAY
 };
 fixed_string<50>::cstr globalChat;
-int globalChatAuthor = 0;
+size_t globalChatAuthor = 0;
 
 int playerScores[6] = { 0 };
 

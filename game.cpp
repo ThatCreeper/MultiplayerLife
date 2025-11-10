@@ -44,7 +44,6 @@ void gameUpdateChat() {
 	// Get char pressed (unicode character) on the queue
 	int key = GetCharPressed();
 	bool updated = false;
-	int len = globalChat.length();
 
 	// Check if more characters have been pressed on the same frame
 	while (key > 0)
@@ -90,8 +89,8 @@ void gamePickIsServer() {
 }
 
 void gameLife() {
-	mouseTileX = Clamp(GetMouseX() / 20, 0, 80);
-	mouseTileY = Clamp(GetMouseY() / 20, 0, 25);
+	mouseTileX = std::clamp(GetMouseX() / 20, 0, 80);
+	mouseTileY = std::clamp(GetMouseY() / 20, 0, 25);
 
 	if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
 		clientClaim(mouseTileX, mouseTileY);

@@ -42,7 +42,7 @@ void renderFilledTiles() {
 
 void renderParticles() {
 	for (const Particle &particle : particles) {
-		int s = 20 - particle.size;
+		int s = static_cast<int>(20 - particle.size);
 		DrawRectangle(particle.x * 20 + (20 - s) / 2, particle.y * 20 + (20 - s) / 2, s, s,
 			particle.color == 0 ? BLACK : colors[particle.color - 1]);
 	}
@@ -61,7 +61,7 @@ void renderBoardHoveredTile() {
 
 void renderUsers() {
 	for (const Users::User &user : users.users) {
-		int i = user.idx;
+		int i = static_cast<int>(user.idx);
 		int y = 20 * (i % 3);
 		int x = (1600 / 4) * (i / 3);
 		DrawText(std::format("{}{} - {}", user.name.bytes(), i == userId ? " (you)" : "", playerScores[i]), x, 500 + y, 20, colors[i]);

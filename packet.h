@@ -32,7 +32,7 @@ struct ClientboundPacketClaim {
 	int color;
 };
 struct ClientboundPacketId {
-	int id;
+	size_t id;
 };
 struct ClientboundPacketAddUser {
 	fixed_string<20> name;
@@ -43,6 +43,6 @@ struct ClientboundPacketFail {
 struct ClientboundPacketTick {
 };
 struct ClientboundPacketChat {
-	int chatauthor;
+	size_t chatauthor = 0;
 	fixed_string<50> chat;
 };

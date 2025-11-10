@@ -27,7 +27,7 @@ void serverOpen() {
 	assert(!getaddrinfo(nullptr, "9142", &hints, &result));
 	serverSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 	assert(serverSocket != INVALID_SOCKET);
-	assert(bind(serverSocket, result->ai_addr, result->ai_addrlen) != SOCKET_ERROR);
+	assert(bind(serverSocket, result->ai_addr, static_cast<int>(result->ai_addrlen)) != SOCKET_ERROR);
 	freeaddrinfo(result);
 	assert(listen(serverSocket, 5) != SOCKET_ERROR);
 	// non-blockify
@@ -76,7 +76,7 @@ void serverSendPacket(ClientboundPacketKind packet, const void *data, size_t siz
 	}
 	else {
 		send(connection.socket, reinterpret_cast<const char *>(&packet), sizeof(packet), 0);
-		send(connection.socket, reinterpret_cast<const char *>(data), size, 0);
+		send(connection.socket, reinterpret_cast<const char *>(data), static_cast<int>(size), 0);
 	}
 }
 
@@ -95,7 +95,7 @@ void serverRecieve(void *out, size_t size, Connection &connection) {
 		std::copy((char *)serverLoopbackData, (char *)serverLoopbackData + size, (char *)out);
 	}
 	else {
-		recv(connection.socket, (char *)out, size, 0);
+		recv(connection.socket, (char *)out, static_cast<int>(size), 0);
 	}
 }
 
@@ -180,8 +180,9 @@ void serverAcceptPacket(ServerboundPacketKind packet, Connection &connection) {
 PCK(Claim) {
 	PCKD(Claim);
 	if (mapGetTileB(packet.x, packet.y) != 0) return; // Prevent reclaiming others' tiles
-	mapSetTileB(packet.x, packet.y, connection.id + 1);
-	SEND_PACKET_ALL(Claim, { .x = packet.x, .y = packet.y, .color = connection.id + 1 });
+	int color = static_cast<int>(connection.id) + 1;
+	mapSetTileB(packet.x, packet.y, color);
+	SEND_PACKET_ALL(Claim, { .x = packet.x, .y = packet.y, .color = color });
 }
 PCK(Register) {
 	PCKD(Register);

@@ -4,8 +4,8 @@
 #include "packet.h"
 
 struct Connection {
-	int id = 0;
-	unsigned __int64 socket;
+	size_t id = 0;
+	unsigned __int64 socket = 0;
 };
 
 void serverAcceptPacket(ServerboundPacketKind packet, Connection &connection);

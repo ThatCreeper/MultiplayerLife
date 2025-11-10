@@ -4,7 +4,7 @@
 
 extern int mouseTileX;
 extern int mouseTileY;
-extern int userId;
+extern size_t userId;
 
 constexpr float maxTickTime = 2;
 extern float tickTime;
@@ -26,7 +26,7 @@ extern bool isServer;
 extern unsigned __int64 serverSocket;
 extern Color colors[];
 extern fixed_string<50>::cstr globalChat;
-extern int globalChatAuthor;
+extern size_t globalChatAuthor;
 
 extern int playerScores[6];
 

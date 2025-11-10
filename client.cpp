@@ -21,7 +21,7 @@ void clientOpen(const char *host) {
 	assert(!getaddrinfo(host, "9142", &hints, &result));
 	serverSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 	assert(serverSocket != INVALID_SOCKET);
-	assert(connect(serverSocket, result->ai_addr, result->ai_addrlen) != SOCKET_ERROR);
+	assert(connect(serverSocket, result->ai_addr, static_cast<int>(result->ai_addrlen)) != SOCKET_ERROR);
 	freeaddrinfo(result);
 	// non-blockify
 	unsigned long nonblock = 1;
@@ -41,7 +41,7 @@ void clientSendPacket(ServerboundPacketKind packet, const void *data, size_t siz
 		serverAcceptPacketLoopback(packet, data, size);
 	else {
 		send(serverSocket, reinterpret_cast<const char *>(&packet), sizeof(packet), 0);
-		send(serverSocket, reinterpret_cast<const char *>(data), size, 0);
+		send(serverSocket, reinterpret_cast<const char *>(data), static_cast<int>(size), 0);
 	}
 }
 
@@ -58,7 +58,7 @@ void clientRecieve(void *out, size_t size) {
 		std::copy((char *)clientLoopbackData, (char *)clientLoopbackData + size, (char *)out);
 	}
 	else {
-		recv(serverSocket, (char *)out, size, 0);
+		recv(serverSocket, (char *)out, static_cast<int>(size), 0);
 	}
 }
 

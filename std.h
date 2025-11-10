@@ -109,11 +109,11 @@ struct inplace_vector {
 		return count >= N;
 	}
 
-	optional_ref<const T> try_at(int pos) const {
+	optional_ref<const T> try_at(size_t pos) const {
 		if (pos >= count) return {};
 		return values[pos];
 	}
-	optional_ref<T> try_at(int pos) {
+	optional_ref<T> try_at(size_t pos) {
 		if (pos >= count) return {};
 		return values[pos];
 	}
@@ -221,7 +221,7 @@ struct reusable_inplace_vector {
 		return {};
 	}
 
-	optional_ref<T> try_at(int pos) {
+	optional_ref<T> try_at(size_t pos) {
 		optional_ref<std::optional<T>> res = store.try_at(pos);
 		if (!res) return {};
 		return **res;

@@ -5,12 +5,12 @@
 struct Users {
 	struct User {
 		fixed_string<20>::cstr name;
-		int idx;
+		size_t idx = 0;
 	};
 	inplace_vector<User, 6> users;
 
-	std::optional<int> Add(const fixed_string<20> &name);
-	optional_ref<User> Get(int id);
+	std::optional<size_t> Add(const fixed_string<20> &name);
+	optional_ref<User> Get(size_t id);
 	size_t size() const;
 };
 
