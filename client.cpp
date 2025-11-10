@@ -96,6 +96,7 @@ PCK(Tick) {
 PCK(Chat) {
 	globalChat.copy_from(packet.chat);
 	globalChatAuthor = packet.chatAuthor;
+	SetWindowTitle(globalChat.bytes());
 }
 #undef PCK
 

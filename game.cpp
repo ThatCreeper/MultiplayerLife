@@ -93,7 +93,10 @@ void gameUpdateChat() {
 		updated = true;
 	}
 
-	if (updated) clientUpdateChat();
+	if (updated) {
+		SetWindowTitle(globalChat.bytes());
+		clientUpdateChat();
+	}
 }
 
 void gameLife() {
