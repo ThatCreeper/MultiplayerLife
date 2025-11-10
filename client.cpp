@@ -4,6 +4,9 @@
 #include "wintcp.h"
 #include "user.h"
 
+const void *clientLoopbackData;
+size_t clientLoopbackSize;
+
 void clientOpen(const char *host) {
 	WSADATA wsaData;
 	assert(!WSAStartup(MAKEWORD(2, 2), &wsaData));
@@ -25,27 +28,44 @@ void clientOpen(const char *host) {
 
 void clientRegister(const fixed_string<20> &name) {
 	assert(userId == -1);
-	ServerboundPacket packet;
-	packet.kind = ServerboundPacket::Kind::Register;
+	ServerboundPacketRegister packet;
 	packet.name.copy_from(name);
-	clientSendPacket(packet);
+	clientSendPacket(ServerboundPacketKind::Register, &packet, sizeof(packet));
 }
 
-void clientSendPacket(ServerboundPacket &packet) {
-	void serverAcceptPacketLoopback(ServerboundPacket &);
+void clientSendPacket(ServerboundPacketKind packet, const void *data, size_t size) {
+	void serverAcceptPacketLoopback(ServerboundPacketKind, const void *, size_t);
 	if (isServer)
-		serverAcceptPacketLoopback(packet);
-	else
+		serverAcceptPacketLoopback(packet, data, size);
+	else {
 		send(serverSocket, reinterpret_cast<const char *>(&packet), sizeof(packet), 0);
+		send(serverSocket, reinterpret_cast<const char *>(data), size, 0);
+	}
+}
+
+void clientAcceptPacketLoopback(ClientboundPacketKind packet, const void *data, size_t size) {
+	clientLoopbackData = data;
+	clientLoopbackSize = size;
+	clientAcceptPacket(packet);
+}
+
+void clientRecieve(void *out, size_t size) {
+	if (isServer) {
+		assert(size == clientLoopbackSize);
+		std::copy((char *)clientLoopbackData, (char *)clientLoopbackData + size, (char *)out);
+	}
+	else {
+		recv(serverSocket, (char *)out, size, 0);
+	}
 }
 
 #define PCK(kind) \
-	case ClientboundPacket::Kind::kind: \
-		void clientAcceptPacket##kind(ClientboundPacket &packet); \
-		clientAcceptPacket##kind(packet); \
+	case ClientboundPacketKind::kind: \
+		void clientAcceptPacket##kind(); \
+		clientAcceptPacket##kind(); \
 		break
-void clientAcceptPacket(ClientboundPacket &packet) {
-	switch (packet.kind) {
+void clientAcceptPacket(ClientboundPacketKind packet) {
+	switch (packet) {
 		PCK(AddUser);
 		PCK(Claim);
 		PCK(Fail);
@@ -58,7 +78,7 @@ void clientAcceptPacket(ClientboundPacket &packet) {
 }
 void clientRecievePackets()
 {
-	ClientboundPacket packet;
+	ClientboundPacketKind packet;
 	while (true) {
 		if (recv(serverSocket, reinterpret_cast<char *>(&packet), sizeof(packet), 0) == SOCKET_ERROR) break;
 		clientAcceptPacket(packet);
@@ -69,29 +89,35 @@ void clientRecievePackets()
 	}
 }
 #undef PCK
-#define PCK(kind) void clientAcceptPacket##kind(ClientboundPacket &packet)
+#define PCK(kind) void clientAcceptPacket##kind()
+#define PCKD(kind) ClientboundPacket##kind packet; clientRecieve(&packet, sizeof(packet))
 PCK(AddUser) {
+	PCKD(AddUser);
 	users.Add(packet.name);
 }
 PCK(Claim) {
+	PCKD(Claim);
 	if (GetRandomValue(0, 3) != 0) {
 		Particle p;
 		p.size = 0;
-		p.x = packet.a;
-		p.y = packet.b;
+		p.x = packet.x;
+		p.y = packet.y;
 		p.color = mapGetTile(p.x, p.y);
 		particles.try_push_replace(p);
 	}
-	mapSetTile(packet.a, packet.b, packet.c);
+	mapSetTile(packet.x, packet.y, packet.color);
 }
 PCK(Fail) {
+	PCKD(Fail);
 	MessageBoxA(nullptr, "Fail", TextFormat("%.*s", 20, packet.failmsg.bytes()), MB_OK);
 	assert(0);
 }
 PCK(Id) {
+	PCKD(Id);
 	userId = packet.id;
 }
 PCK(Tick) {
+	PCKD(Tick);
 	tickTime = 0;
 	memset(playerScores, 0, sizeof(playerScores));
 	for (int y = 0; y < 25; y++) {
@@ -102,24 +128,23 @@ PCK(Tick) {
 	}
 }
 PCK(Chat) {
+	PCKD(Chat);
 	globalChat.copy_from(packet.chat);
-	globalChatAuthor = packet.chatAuthor;
+	globalChatAuthor = packet.chatauthor;
 	SetWindowTitle(globalChat.bytes());
 }
 #undef PCK
 
 void clientClaim(int x, int y) {
-	ServerboundPacket packet;
-	packet.kind = ServerboundPacket::Kind::Claim;
-	packet.a = x;
-	packet.b = y;
-	clientSendPacket(packet);
+	ServerboundPacketClaim packet;
+	packet.x = x;
+	packet.y = y;
+	clientSendPacket(ServerboundPacketKind::Claim, &packet, sizeof(packet));
 }
 
 void clientUpdateChat()
 {
-	ServerboundPacket packet;
-	packet.kind = ServerboundPacket::Kind::Chat;
+	ServerboundPacketChat packet;
 	packet.chat.copy_from(globalChat);
-	clientSendPacket(packet);
+	clientSendPacket(ServerboundPacketKind::Chat, &packet, sizeof(packet));
 }

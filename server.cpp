@@ -6,6 +6,8 @@
 
 Connection loopbackConnection;
 reusable_inplace_vector<Connection, 5> clientSockets;
+const void *serverLoopbackData;
+size_t serverLoopbackSize;
 
 void serverOpen() {
 	WSADATA wsaData;
@@ -42,7 +44,7 @@ void serverRecievePackets() {
 		}
 	}
 
-	ServerboundPacket packet;
+	ServerboundPacketKind packet;
 	for (Connection &connection : clientSockets) {
 		while (true) {
 			if (recv(connection.socket, reinterpret_cast<char *>(&packet), sizeof(packet), 0) == SOCKET_ERROR) break;
@@ -56,21 +58,33 @@ void serverRecievePackets() {
 	}
 }
 
-void serverSendPacket(ClientboundPacket &packet, Connection &connection) {
+void serverSendPacket(ClientboundPacketKind packet, const void *data, size_t size, Connection &connection) {
 	assert(isServer);
-	void clientAcceptPacket(ClientboundPacket &);
+	void clientAcceptPacketLoopback(ClientboundPacketKind, const void *, size_t);
 	if (&connection == &loopbackConnection)
-		clientAcceptPacket(packet);
-	else
+		clientAcceptPacketLoopback(packet, data, size);
+	else {
 		send(connection.socket, reinterpret_cast<const char *>(&packet), sizeof(packet), 0);
+		send(connection.socket, reinterpret_cast<const char *>(data), size, 0);
+	}
 }
 
-void serverSendPacketAll(ClientboundPacket &packet) {
+void serverSendPacketAll(ClientboundPacketKind packet, const void *data, size_t size) {
 	assert(isServer);
-	void clientAcceptPacket(ClientboundPacket &);
-	clientAcceptPacket(packet);
+	void clientAcceptPacketLoopback(ClientboundPacketKind, const void *, size_t);
+	clientAcceptPacketLoopback(packet, data, size);
 	for (Connection &connection : clientSockets) {
-		serverSendPacket(packet, connection);
+		serverSendPacket(packet, data, size, connection);
+	}
+}
+
+void serverRecieve(void *out, size_t size, Connection &connection) {
+	if (&connection == &loopbackConnection) {
+		assert(serverLoopbackSize == size);
+		std::copy((char *)serverLoopbackData, (char *)serverLoopbackData + size, (char *)out);
+	}
+	else {
+		recv(connection.socket, (char *)out, size, 0);
 	}
 }
 
@@ -109,34 +123,33 @@ void serverLife() {
 		int tb = mapGetTileC(x, y);
 		if (t != tb) {
 			mapSetTileB(x, y, tb);
-			ClientboundPacket packet;
-			packet.kind = ClientboundPacket::Kind::Claim;
-			packet.a = x;
-			packet.b = y;
-			packet.c = tb;
-			serverSendPacketAll(packet);
+			ClientboundPacketClaim packet;
+			packet.x = x;
+			packet.y = y;
+			packet.color = tb;
+			serverSendPacketAll(ClientboundPacketKind::Claim, &packet, sizeof(packet));
 		}
 	}
 
-	ClientboundPacket packet;
-	packet.kind = ClientboundPacket::Kind::Tick;
-	serverSendPacketAll(packet);
+	ClientboundPacketTick packet;
+	serverSendPacketAll(ClientboundPacketKind::Tick, &packet, sizeof(packet));
 }
 
-
-void serverAcceptPacketLoopback(ServerboundPacket &packet)
+void serverAcceptPacketLoopback(ServerboundPacketKind packet, const void *data, size_t size)
 {
+	serverLoopbackData = data;
+	serverLoopbackSize = size;
 	serverAcceptPacket(packet, loopbackConnection);
 }
 
 #define PCK(kind) \
-	case ServerboundPacket::Kind::kind: \
-		void serverAcceptPacket##kind(ServerboundPacket &packet, Connection &connection); \
-		serverAcceptPacket##kind(packet, connection); \
+	case ServerboundPacketKind::kind: \
+		void serverAcceptPacket##kind(Connection &connection); \
+		serverAcceptPacket##kind(connection); \
 		break
-void serverAcceptPacket(ServerboundPacket &packet, Connection &connection) {
+void serverAcceptPacket(ServerboundPacketKind packet, Connection &connection) {
 	assert(isServer);
-	switch (packet.kind) {
+	switch (packet) {
 		PCK(Claim);
 		PCK(Register);
 		PCK(Chat);
@@ -145,63 +158,61 @@ void serverAcceptPacket(ServerboundPacket &packet, Connection &connection) {
 	}
 }
 #undef PCK
-#define PCK(kind) void serverAcceptPacket##kind(ServerboundPacket &packet, Connection &connection)
+#define PCK(kind) void serverAcceptPacket##kind(Connection &connection)
+#define PCKD(kind) ServerboundPacket##kind packet; serverRecieve(&packet, sizeof(packet), connection)
 PCK(Claim) {
-	if (mapGetTileB(packet.a, packet.b) == 0) {
-		mapSetTileB(packet.a, packet.b, connection.id + 1);
-		ClientboundPacket p;
-		p.kind = ClientboundPacket::Kind::Claim;
-		p.a = packet.a;
-		p.b = packet.b;
-		p.c = connection.id + 1;
-		serverSendPacketAll(p);
+	PCKD(Claim);
+	if (mapGetTileB(packet.x, packet.y) == 0) {
+		mapSetTileB(packet.x, packet.y, connection.id + 1);
+		ClientboundPacketClaim p;
+		p.x = packet.x;
+		p.y = packet.y;
+		p.color = connection.id + 1;
+		serverSendPacketAll(ClientboundPacketKind::Claim, &p, sizeof(p));
 	}
 }
 PCK(Register) {
+	PCKD(Register);
 	auto id = users.Add(packet.name);
 	if (id) {
 		for (Users::User &user : users.users) {
-			ClientboundPacket packet;
-			packet.kind = ClientboundPacket::Kind::AddUser;
+			ClientboundPacketAddUser packet;
 			packet.name.copy_from(user.name);
 			if (user.idx == id) {
-				serverSendPacketAll(packet);
+				serverSendPacketAll(ClientboundPacketKind::AddUser, &packet, sizeof(packet));
 			}
 			else {
-				serverSendPacket(packet, connection);
+				serverSendPacket(ClientboundPacketKind::AddUser, &packet, sizeof(packet), connection);
 			}
 		}
 
-		ClientboundPacket packet;
-		packet.kind = ClientboundPacket::Kind::Id;
+		ClientboundPacketId packet;
 		packet.id = *id;
 		connection.id = *id;
-		serverSendPacket(packet, connection);
+		serverSendPacket(ClientboundPacketKind::Id, &packet, sizeof(packet), connection);
 		for (int y = 0; y < 25; y++) {
 			for (int x = 0; x < 80; x++) {
 				int tile = mapGetTile(x, y);
 				if (tile == 0) continue;
-				ClientboundPacket packet;
-				packet.kind = ClientboundPacket::Kind::Claim;
-				packet.a = x;
-				packet.b = y;
-				packet.c = tile;
-				serverSendPacket(packet, connection);
+				ClientboundPacketClaim packet;
+				packet.x = x;
+				packet.y = y;
+				packet.color = tile;
+				serverSendPacket(ClientboundPacketKind::Claim, &packet, sizeof(packet), connection);
 			}
 		}
 	}
 	else {
-		ClientboundPacket packet;
-		packet.kind = ClientboundPacket::Kind::Fail;
+		ClientboundPacketFail packet;
 		packet.failmsg.copy_from("No space!");
-		serverSendPacket(packet, connection);
+		serverSendPacket(ClientboundPacketKind::Fail, &packet, sizeof(packet), connection);
 	}
 }
 PCK(Chat) {
-	ClientboundPacket p;
-	p.kind = ClientboundPacket::Kind::Chat;
+	PCKD(Chat);
+	ClientboundPacketChat p;
 	p.chat.copy_from(packet.chat);
-	p.chatAuthor = connection.id;
-	serverSendPacketAll(p);
+	p.chatauthor = connection.id;
+	serverSendPacketAll(ClientboundPacketKind::Chat, &p, sizeof(p));
 }
 #undef PCK

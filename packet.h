@@ -2,43 +2,47 @@
 
 #include "std.h"
 
-struct ServerboundPacket {
-	enum class Kind {
-		Claim,
-		Register,
-		Chat
-	} kind;
-	union {
-		struct {
-			int a;
-			int b;
-		};
-		fixed_string<20> name;
-		fixed_string<50> chat;
-	};
+enum class ServerboundPacketKind {
+	Claim,
+	Register,
+	Chat
+};
+struct ServerboundPacketClaim {
+	int x;
+	int y;
+};
+struct ServerboundPacketRegister {
+	fixed_string<20> name;
+};
+struct ServerboundPacketChat {
+	fixed_string<50> chat;
 };
 
-struct ClientboundPacket {
-	enum class Kind {
-		Claim,
-		Id,
-		AddUser,
-		Fail,
-		Tick,
-		Chat
-	} kind;
-	union {
-		struct {
-			int a;
-			int b;
-			int c;
-		};
-		int id;
-		fixed_string<20> name;
-		fixed_string<20> failmsg;
-		struct {
-			int chatAuthor;
-			fixed_string<50> chat;
-		};
-	};
+enum class ClientboundPacketKind {
+	Claim,
+	Id,
+	AddUser,
+	Fail,
+	Tick,
+	Chat
+};
+struct ClientboundPacketClaim {
+	int x;
+	int y;
+	int color;
+};
+struct ClientboundPacketId {
+	int id;
+};
+struct ClientboundPacketAddUser {
+	fixed_string<20> name;
+};
+struct ClientboundPacketFail {
+	fixed_string<20> failmsg;
+};
+struct ClientboundPacketTick {
+};
+struct ClientboundPacketChat {
+	int chatauthor;
+	fixed_string<50> chat;
 };

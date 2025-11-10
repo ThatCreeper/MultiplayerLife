@@ -8,10 +8,10 @@ struct Connection {
 	unsigned __int64 socket;
 };
 
-void serverAcceptPacket(ServerboundPacket &packet, Connection &connection);
-void serverAcceptPacketLoopback(ServerboundPacket &packet);
+void serverAcceptPacket(ServerboundPacketKind packet, Connection &connection);
+void serverAcceptPacketLoopback(ServerboundPacketKind packet, const void *data, size_t size);
 void serverRecievePackets();
-void serverSendPacket(ClientboundPacket &packet, Connection &connection);
-void serverSendPacketAll(ClientboundPacket &packet);
+void serverSendPacket(ClientboundPacketKind packet, const void *data, size_t size, Connection &connection);
+void serverSendPacketAll(ClientboundPacketKind packet, const void *data, size_t size);
 void serverLife();
 void serverOpen();
