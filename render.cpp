@@ -3,27 +3,27 @@
 #include "gamestate.h"
 #include "user.h"
 
-void DrawText(std::string_view text, int x, int y, int size, Color color) {
-	DrawText(text.data(), x, y, size, color);
+void renderUpdateParticles();
+void renderFilledTiles();
+void renderParticles();
+void renderBoardGridLines();
+void renderBoardHoveredTile();
+void renderUsers();
+void renderTicker();
+
+void renderBoard() {
+	renderUpdateParticles();
+
+	renderFilledTiles();
+	renderParticles();
+
+	renderBoardGridLines();
+	renderBoardHoveredTile();
 }
 
-void renderBoardGridLines() {
-	for (int y = 0; y <= 25; y++)
-		DrawLine(0, y * 20, 1600, y * 20, Color{ 40, 40, 40, 255 });
-	for (int x = 0; x <= 80; x++)
-		DrawLine(x * 20, 0, x * 20, 500, Color{ 40, 40, 40, 255 });
-}
-
-void renderBoardHoveredTile() {
-	DrawRectangleLines(mouseTileX * 20 + 1, mouseTileY * 20 + 1, 19, 19, YELLOW);
-}
-
-void renderParticles() {
-	for (const Particle &particle : particles) {
-		int s = 20 - particle.size;
-		DrawRectangle(particle.x * 20 + (20 - s) / 2, particle.y * 20 + (20 - s) / 2, s, s,
-			particle.color == 0 ? BLACK : colors[particle.color - 1]);
-	}
+void renderHud() {
+	renderUsers();
+	renderTicker();
 }
 
 void renderUpdateParticles() {
@@ -40,14 +40,23 @@ void renderFilledTiles() {
 	}
 }
 
-void renderBoard() {
-	renderUpdateParticles();
+void renderParticles() {
+	for (const Particle &particle : particles) {
+		int s = 20 - particle.size;
+		DrawRectangle(particle.x * 20 + (20 - s) / 2, particle.y * 20 + (20 - s) / 2, s, s,
+			particle.color == 0 ? BLACK : colors[particle.color - 1]);
+	}
+}
 
-	renderFilledTiles();
-	renderParticles();
+void renderBoardGridLines() {
+	for (int y = 0; y <= 25; y++)
+		DrawLine(0, y * 20, 1600, y * 20, Color{ 40, 40, 40, 255 });
+	for (int x = 0; x <= 80; x++)
+		DrawLine(x * 20, 0, x * 20, 500, Color{ 40, 40, 40, 255 });
+}
 
-	renderBoardGridLines();
-	renderBoardHoveredTile();
+void renderBoardHoveredTile() {
+	DrawRectangleLines(mouseTileX * 20 + 1, mouseTileY * 20 + 1, 19, 19, YELLOW);
 }
 
 void renderUsers() {
@@ -64,7 +73,6 @@ void renderTicker() {
 	DrawCircleSector({ 1570, 530 }, 25, -90, 360 * tickTime / maxTickTime - 90, 20, colors[userId]);
 }
 
-void renderHud() {
-	renderUsers();
-	renderTicker();
+void DrawText(std::string_view text, int x, int y, int size, Color color) {
+	DrawText(text.data(), x, y, size, color);
 }
