@@ -22,6 +22,8 @@ Color colors[] = {
 	GRAY
 };
 
+int playerScores[6] = { 0 }
+
 int mapWrapX(int x) {
 	while (x < 0) x += 80;
 	while (x >= 80) x -= 80;

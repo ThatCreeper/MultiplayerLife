@@ -9,7 +9,9 @@ struct Connection {
 };
 
 void serverAcceptPacket(ServerboundPacket &packet, Connection &connection);
-void netRecievePacketsServer();
+void serverAcceptPacketLoopback(ServerboundPacket &packet);
+void serverRecievePackets();
 void serverSendPacket(ClientboundPacket &packet, Connection &connection);
 void serverSendPacketAll(ClientboundPacket &packet);
 void serverLife();
+void serverOpen();

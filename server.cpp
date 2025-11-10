@@ -28,7 +28,7 @@ void serverOpen() {
 	ioctlsocket(serverSocket, FIONBIO, &nonblock);
 }
 
-void netRecievePacketsServer() {
+void serverRecievePackets() {
 	assert(isServer);
 
 	if (!clientSockets.full()) {
@@ -74,6 +74,15 @@ void serverSendPacketAll(ClientboundPacket &packet) {
 	}
 }
 
+template<size_t N>
+int fuzzyMedian(int(&values)[N]) {
+	int middle = std::clamp(N / 2 + GetRandomValue(-1, 1), 0ull, N);
+	int sorted[N];
+	std::copy(values, values + N, sorted);
+	std::nth_element(sorted, sorted + middle, sorted + N);
+	return sorted[middle];
+}
+
 void serverLife() {
 	if (!isServer) return;
 	tickTime += GetFrameTime();
@@ -115,6 +124,12 @@ void serverLife() {
 	ClientboundPacket packet;
 	packet.kind = ClientboundPacket::Kind::Tick;
 	serverSendPacketAll(packet);
+}
+
+
+void serverAcceptPacketLoopback(ServerboundPacket &packet)
+{
+	serverAcceptPacket(packet, loopbackConnection);
 }
 
 #define PCK(kind) \

@@ -16,6 +16,8 @@ extern bool isServer;
 extern unsigned __int64 serverSocket;
 extern Color colors[];
 
+extern int playerScores[6];
+
 int mapWrapX(int x);
 int mapWrapY(int y);
 int mapGetTile(int x, int y);

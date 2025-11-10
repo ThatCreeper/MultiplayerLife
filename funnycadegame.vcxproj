@@ -130,14 +130,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="client.cpp" />
     <ClCompile Include="funnycadegame.cpp" />
+    <ClCompile Include="game.cpp" />
     <ClCompile Include="gamestate.cpp" />
+    <ClCompile Include="net.cpp" />
+    <ClCompile Include="render.cpp" />
     <ClCompile Include="server.cpp" />
     <ClCompile Include="user.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="client.h" />
+    <ClInclude Include="game.h" />
     <ClInclude Include="gamestate.h" />
+    <ClInclude Include="net.h" />
     <ClInclude Include="packet.h" />
+    <ClInclude Include="render.h" />
     <ClInclude Include="server.h" />
     <ClInclude Include="std.h" />
     <ClInclude Include="user.h" />
