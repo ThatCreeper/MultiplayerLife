@@ -202,6 +202,7 @@ struct reusable_inplace_vector {
 	optional_ref<T> replace_push_replace(const T &val) {
 		optional_ref<T> r1 = try_push_replace(val);
 		if (r1) return r1;
+		// If we're full, pick a random value and replace it
 		optional_ref<std::optional<T>> out = store.try_at(GetRandomValue(0, N - 1));
 		(*out) = val;
 		return **out;
@@ -238,8 +239,7 @@ struct reusable_inplace_vector {
 		}
 	}
 
-	template <class F>
-	void remove_if(F f) {
+	void remove_if(auto f) {
 		for (std::optional<T> &member : store) {
 			if (member && f(*member)) {
 				member.reset();

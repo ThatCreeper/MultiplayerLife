@@ -104,18 +104,14 @@ int fuzzyMedian(int(&values)[N]) {
 	return sorted[middle];
 }
 
-void serverLife() {
-	tickTime += GetFrameTime(); // This also affects the client... ugh
-	if (!isServer) return;
-	if (tickTime < maxTickTime) return;
-	tickTime = 0;
-
+void serverUpdateTilesC() {
 	mapClearC();
+
 	FORMAPXY(x, y) {
 #define T(a,b) mapGetTileB(x+a,y+b)
 		int ns[] = { T(-1,-1), T(0,-1), T(1,-1),
-			         T(-1,0),  T(1,0),
-			         T(-1,1),  T(0,1),  T(1,1) };
+					 T(-1,0),  T(1,0),
+					 T(-1,1),  T(0,1),  T(1,1) };
 		int t = T(0, 0);
 #undef T
 		int n = 0;
@@ -125,25 +121,33 @@ void serverLife() {
 		if (t && (n == 2 || n == 3)) mapSetTileC(x, y, t);
 		if (!t && n == 3) mapSetTileC(x, y, nT / n);
 	}
+}
+
+void serverPropagateChangesTilesC() {
 	FORMAPXY(x, y) {
 		int t = mapGetTileB(x, y);
 		int tb = mapGetTileC(x, y);
-		if (t != tb) {
-			mapSetTileB(x, y, tb);
-			ClientboundPacketClaim packet;
-			packet.x = x;
-			packet.y = y;
-			packet.color = tb;
-			SEND_A_PACKET_ALL(Claim, packet);
-		}
+		if (t == tb) continue;
+		mapSetTileB(x, y, tb);
+		SEND_PACKET_ALL(Claim, { .x = x, .y = y, .color = tb });
 	}
+}
+
+void serverLife() {
+	tickTime += GetFrameTime(); // This also affects the client... ugh
+	if (!isServer) return;
+	if (tickTime < maxTickTime) return;
+	tickTime = 0;
+
+	serverUpdateTilesC();
+	serverPropagateChangesTilesC();
 
 	SEND_PACKET_ALL(Tick, {});
 }
 
-void serverSendMap(Connection &connection) {
+void serverSendMapInitialConfiguration(Connection &connection) {
 	FORMAPXY(x, y) {
-		int tile = mapGetTile(x, y);
+		int tile = mapGetTileB(x, y);
 		if (tile == 0) continue;
 		ClientboundPacketClaim packet;
 		packet.x = x;
@@ -180,37 +184,31 @@ void serverAcceptPacket(ServerboundPacketKind packet, Connection &connection) {
 #define PCKD(kind) ServerboundPacket##kind packet; serverRecieve(&packet, sizeof(packet), connection)
 PCK(Claim) {
 	PCKD(Claim);
-	if (mapGetTileB(packet.x, packet.y) == 0) {
-		mapSetTileB(packet.x, packet.y, connection.id + 1);
-		ClientboundPacketClaim p;
-		p.x = packet.x;
-		p.y = packet.y;
-		p.color = connection.id + 1;
-		SEND_A_PACKET_ALL(Claim, p);
-	}
+	if (mapGetTileB(packet.x, packet.y) != 0) return; // Prevent reclaiming others' tiles
+	mapSetTileB(packet.x, packet.y, connection.id + 1);
+	SEND_PACKET_ALL(Claim, { .x = packet.x, .y = packet.y, .color = connection.id + 1 });
 }
 PCK(Register) {
 	PCKD(Register);
 	auto id = users.Add(packet.name);
-	if (id) {
-		for (Users::User &user : users.users) {
-			ClientboundPacketAddUser packet{};
-			packet.name.copy_from(user.name);
-			if (user.idx == id) {
-				SEND_A_PACKET_ALL(AddUser, packet);
-			}
-			else {
-				SEND_A_PACKET(AddUser, packet, connection);
-			}
-		}
-
-		connection.id = *id;
-		SEND_PACKET(Id, connection, { .id = *id });
-		serverSendMap(connection);
-	}
-	else {
+	if (!id) {
 		SEND_PACKET(Fail, connection, { .failmsg{"No space!"} });
+		return;
 	}
+	for (Users::User &user : users.users) {
+		ClientboundPacketAddUser packet{};
+		packet.name.copy_from(user.name);
+		if (user.idx == id) {
+			SEND_A_PACKET_ALL(AddUser, packet);
+		}
+		else {
+			SEND_A_PACKET(AddUser, packet, connection);
+		}
+	}
+
+	connection.id = *id;
+	SEND_PACKET(Id, connection, { .id = connection.id });
+	serverSendMapInitialConfiguration(connection);
 }
 PCK(Chat) {
 	PCKD(Chat);

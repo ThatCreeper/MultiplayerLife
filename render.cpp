@@ -7,28 +7,47 @@ void DrawText(std::string_view text, int x, int y, int size, Color color) {
 	DrawText(text.data(), x, y, size, color);
 }
 
-void renderBoard() {
-	for (Particle &particle : particles) {
-		particle.size += GetFrameTime() * 80;
-	}
-	particles.remove_if([](const Particle &particle) { return particle.size >= 20; });
+void renderBoardGridLines() {
+	for (int y = 0; y <= 25; y++)
+		DrawLine(0, y * 20, 1600, y * 20, Color{ 40, 40, 40, 255 });
+	for (int x = 0; x <= 80; x++)
+		DrawLine(x * 20, 0, x * 20, 500, Color{ 40, 40, 40, 255 });
+}
 
-	FORMAPXY(x, y) {
-		int tile = mapGetTile(x, y);
-		if (tile) DrawRectangle(x * 20, y * 20, 20, 20, colors[tile - 1]);
-	}
+void renderBoardHoveredTile() {
+	DrawRectangleLines(mouseTileX * 20 + 1, mouseTileY * 20 + 1, 19, 19, YELLOW);
+}
+
+void renderParticles() {
 	for (const Particle &particle : particles) {
 		int s = 20 - particle.size;
 		DrawRectangle(particle.x * 20 + (20 - s) / 2, particle.y * 20 + (20 - s) / 2, s, s,
 			particle.color == 0 ? BLACK : colors[particle.color - 1]);
 	}
+}
 
-	for (int y = 0; y <= 25; y++)
-		DrawLine(0, y * 20, 1600, y * 20, Color{ 40, 40, 40, 255 });
-	for (int x = 0; x <= 80; x++)
-		DrawLine(x * 20, 0, x * 20, 500, Color{ 40, 40, 40, 255 });
+void renderUpdateParticles() {
+	for (Particle &particle : particles) {
+		particle.size += GetFrameTime() * 80;
+	}
+	particles.remove_if([](const Particle &particle) { return particle.size >= 20; });
+}
 
-	DrawRectangleLines(mouseTileX * 20 + 1, mouseTileY * 20 + 1, 19, 19, YELLOW);
+void renderFilledTiles() {
+	FORMAPXY(x, y) {
+		int tile = mapGetTile(x, y);
+		if (tile) DrawRectangle(x * 20, y * 20, 20, 20, colors[tile - 1]);
+	}
+}
+
+void renderBoard() {
+	renderUpdateParticles();
+
+	renderFilledTiles();
+	renderParticles();
+
+	renderBoardGridLines();
+	renderBoardHoveredTile();
 }
 
 void renderUsers() {
