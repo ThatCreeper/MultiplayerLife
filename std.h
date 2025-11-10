@@ -14,6 +14,8 @@
 #include <algorithm>
 #include <vector>
 #include <array>
+#include <format>
+#include <print>
 #define strncpy strncpy_s
 
 // T* with some extra safety

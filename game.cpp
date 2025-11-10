@@ -3,6 +3,7 @@
 #include "gamestate.h"
 #include "client.h"
 #include "server.h"
+#include "user.h"
 
 template <size_t N>
 void gameTextEntry(fixed_string<N> &out, const char *prefix, Color bg, Color fg) {
@@ -108,4 +109,52 @@ void gameLife() {
 	}
 
 	gameUpdateChat();
+}
+
+#define PCK(kind) void clientAcceptPacket##kind()
+#define PCKD(kind) ClientboundPacket##kind packet; clientRecieve(&packet, sizeof(packet))
+void clientRecieve(void *, size_t);
+extern "C" int MessageBoxA(void *, const char *, const char *, int);
+#define MB_OK 0x00000000L
+PCK(AddUser) {
+	PCKD(AddUser);
+	users.Add(packet.name);
+}
+PCK(Claim) {
+	PCKD(Claim);
+	if (GetRandomValue(0, 3) != 0) {
+		Particle p;
+		p.size = 0;
+		p.x = packet.x;
+		p.y = packet.y;
+		p.color = mapGetTile(p.x, p.y);
+		particles.try_push_replace(p);
+	}
+	mapSetTile(packet.x, packet.y, packet.color);
+}
+PCK(Fail) {
+	PCKD(Fail);
+	MessageBoxA(nullptr, "Fail", TextFormat("%.*s", 20, packet.failmsg.bytes()), MB_OK);
+	assert(0);
+}
+PCK(Id) {
+	PCKD(Id);
+	userId = packet.id;
+}
+PCK(Tick) {
+	PCKD(Tick);
+	tickTime = 0;
+	memset(playerScores, 0, sizeof(playerScores));
+	for (int y = 0; y < 25; y++) {
+		for (int x = 0; x < 80; x++) {
+			int t = mapGetTile(x, y);
+			if (t) playerScores[t - 1]++;
+		}
+	}
+}
+PCK(Chat) {
+	PCKD(Chat);
+	globalChat.copy_from(packet.chat);
+	globalChatAuthor = packet.chatauthor;
+	SetWindowTitle(globalChat.bytes());
 }

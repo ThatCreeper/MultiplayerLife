@@ -2,7 +2,6 @@
 #include "std.h"
 #include "gamestate.h"
 #include "wintcp.h"
-#include "user.h"
 
 const void *clientLoopbackData;
 size_t clientLoopbackSize;
@@ -53,6 +52,7 @@ void clientAcceptPacketLoopback(ClientboundPacketKind packet, const void *data, 
 }
 
 void clientRecieve(void *out, size_t size) {
+	//std::println("<- {}", size);
 	if (isServer) {
 		assert(size == clientLoopbackSize);
 		std::copy((char *)clientLoopbackData, (char *)clientLoopbackData + size, (char *)out);
@@ -68,6 +68,7 @@ void clientRecieve(void *out, size_t size) {
 		clientAcceptPacket##kind(); \
 		break
 void clientAcceptPacket(ClientboundPacketKind packet) {
+	//std::println("{}", (int)packet);
 	switch (packet) {
 		PCK(AddUser);
 		PCK(Claim);
@@ -90,51 +91,6 @@ void clientRecievePackets()
 		MessageBoxA(nullptr, "srv conn: Error", TextFormat("Conn error: %d", e), MB_OK);
 		exit(1);
 	}
-}
-#undef PCK
-#define PCK(kind) void clientAcceptPacket##kind()
-#define PCKD(kind) ClientboundPacket##kind packet; clientRecieve(&packet, sizeof(packet))
-PCK(AddUser) {
-	PCKD(AddUser);
-	users.Add(packet.name);
-}
-PCK(Claim) {
-	PCKD(Claim);
-	if (GetRandomValue(0, 3) != 0) {
-		Particle p;
-		p.size = 0;
-		p.x = packet.x;
-		p.y = packet.y;
-		p.color = mapGetTile(p.x, p.y);
-		particles.try_push_replace(p);
-	}
-	mapSetTile(packet.x, packet.y, packet.color);
-}
-PCK(Fail) {
-	PCKD(Fail);
-	MessageBoxA(nullptr, "Fail", TextFormat("%.*s", 20, packet.failmsg.bytes()), MB_OK);
-	assert(0);
-}
-PCK(Id) {
-	PCKD(Id);
-	userId = packet.id;
-}
-PCK(Tick) {
-	PCKD(Tick);
-	tickTime = 0;
-	memset(playerScores, 0, sizeof(playerScores));
-	for (int y = 0; y < 25; y++) {
-		for (int x = 0; x < 80; x++) {
-			int t = mapGetTile(x, y);
-			if (t) playerScores[t - 1]++;
-		}
-	}
-}
-PCK(Chat) {
-	PCKD(Chat);
-	globalChat.copy_from(packet.chat);
-	globalChatAuthor = packet.chatauthor;
-	SetWindowTitle(globalChat.bytes());
 }
 #undef PCK
 
