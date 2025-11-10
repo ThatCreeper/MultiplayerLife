@@ -60,6 +60,8 @@ void gamePickIsServer() {
 }
 
 void gameInitSteps() {
+	globalChat.fill(0);
+
 	gamePickIsServer();
 
 	char name[20] = "\0";
@@ -71,7 +73,42 @@ void gameInitSteps() {
 	clientRegister(name);
 }
 
+void gameUpdateChat() {
+	// Get char pressed (unicode character) on the queue
+	int key = GetCharPressed();
+	bool updated = false;
+	int len = strnlen(globalChat.data(), 50);
+
+	// Check if more characters have been pressed on the same frame
+	while (key > 0)
+	{
+		// NOTE: Only allow keys in range [32..125]
+		if ((key >= 32) && (key <= 125) && (len < 50))
+		{
+			globalChat.at(len) = (char)key;
+			if (len < 49) globalChat.at(len + 1) = '\0';
+			updated = true;
+		}
+
+		key = GetCharPressed();  // Check next character in the queue
+	}
+
+	if (IsKeyPressed(KEY_BACKSPACE))
+	{
+		globalChat.at(std::min(49, len - 1)) = '\0';
+		updated = true;
+	}
+
+	if (updated) clientUpdateChat();
+}
+
 void gameLife() {
 	mouseTileX = Clamp(GetMouseX() / 20, 0, 80);
 	mouseTileY = Clamp(GetMouseY() / 20, 0, 25);
+
+	if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+		clientClaim(mouseTileX, mouseTileY);
+	}
+
+	gameUpdateChat();
 }

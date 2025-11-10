@@ -51,6 +51,7 @@ void clientAcceptPacket(ClientboundPacket &packet) {
 		PCK(Fail);
 		PCK(Id);
 		PCK(Tick);
+		PCK(Chat);
 	default:
 		assert(0);
 	}
@@ -92,14 +93,24 @@ PCK(Tick) {
 		}
 	}
 }
+PCK(Chat) {
+	strncpy(globalChat, packet.chat, 50);
+	globalChatAuthor = packet.chatAuthor;
+}
 #undef PCK
 
-void clientLife() {
-	if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-		ServerboundPacket packet;
-		packet.kind = ServerboundPacket::Kind::Claim;
-		packet.a = mouseTileX;
-		packet.b = mouseTileY;
-		clientSendPacket(packet);
-	}
+void clientClaim(int x, int y) {
+	ServerboundPacket packet;
+	packet.kind = ServerboundPacket::Kind::Claim;
+	packet.a = x;
+	packet.b = y;
+	clientSendPacket(packet);
+}
+
+void clientUpdateChat()
+{
+	ServerboundPacket packet;
+	packet.kind = ServerboundPacket::Kind::Chat;
+	strncpy(packet.chat, globalChat.data(), 49);
+	clientSendPacket(packet);
 }

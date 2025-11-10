@@ -21,6 +21,8 @@ Color colors[] = {
 	ORANGE,
 	GRAY
 };
+std::array<char, 50> globalChat;
+int globalChatAuthor = 0;
 
 int playerScores[6] = { 0 };
 

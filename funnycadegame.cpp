@@ -13,8 +13,6 @@ int main() {
 	while (!WindowShouldClose()) {
 		gameLife();
 
-		clientLife();
-
 		netRecievePackets();
 		serverLife();
 

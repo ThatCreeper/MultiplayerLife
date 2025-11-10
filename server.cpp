@@ -50,7 +50,7 @@ void serverRecievePackets() {
 		}
 		if (int e = WSAGetLastError(); e != WSAEWOULDBLOCK) {
 			auto user = users.Get(connection.id);
-			MessageBoxA(nullptr, TextFormat("%ll: %.*s Disconnect", clientSockets.index(connection), 20, user ? user->name : "(???)"), TextFormat("Conn error: %d", e), MB_OK);
+			MessageBoxA(nullptr, TextFormat("%ull: %.*s Disconnect", clientSockets.index(connection), 20, user ? user->name : "(???)"), TextFormat("Conn error: %d", e), MB_OK);
 			clientSockets.remove_safe_iter(connection); // This is fine(-ish) because it doesn't rearrange anything
 		}
 	}
@@ -84,40 +84,37 @@ int fuzzyMedian(int(&values)[N]) {
 }
 
 void serverLife() {
+	tickTime += GetFrameTime(); // This also affects the client... ugh
 	if (!isServer) return;
-	tickTime += GetFrameTime();
 	if (tickTime < maxTickTime) return;
 	tickTime = 0;
 
 	mapClearB();
-	for (int y = 0; y < 25; y++) {
-		for (int x = 0; x < 80; x++) {
-#define T mapGetTile
-			int ns[] = { T(x - 1,y - 1), T(x  ,y - 1), T(x + 1,y - 1),
-				T(x - 1,y),             T(x + 1,y),
-				T(x - 1,y + 1), T(x,  y + 1), T(x + 1,y + 1) };
-			int t = T(x, y);
+	FORMAPXY(x, y) {
+#define T(a,b) mapGetTile(x+a,y+b)
+		int ns[] = { T(-1,-1), T(0,-1), T(1,-1),
+			         T(-1,0),  T(1,0),
+			         T(-1,1),  T(0,1),  T(1,1) };
+		int t = T(0, 0);
 #undef T
-			int n = 0;
-			for (int N : ns) n += N != 0;
-			if (t && (n == 2 || n == 3)) mapSetTileB(x, y, t);
-			if (!t && n == 3) mapSetTileB(x, y, fuzzyMedian(ns));
-		}
+		int n = 0;
+		int nT = 0;
+		for (int N : ns) n += (N != 0);
+		for (int N : ns) nT += N;
+		if (t && (n == 2 || n == 3)) mapSetTileB(x, y, t);
+		if (!t && n == 3) mapSetTileB(x, y, nT / n);
 	}
-
-	for (int y = 0; y < 25; y++) {
-		for (int x = 0; x < 80; x++) {
-			int t = mapGetTile(x, y);
-			int tb = mapGetTileB(x, y);
-			if (t != tb) {
-				mapSetTile(x, y, tb);
-				ClientboundPacket packet;
-				packet.kind = ClientboundPacket::Kind::Claim;
-				packet.a = x;
-				packet.b = y;
-				packet.c = tb;
-				serverSendPacketAll(packet);
-			}
+	FORMAPXY(x, y) {
+		int t = mapGetTile(x, y);
+		int tb = mapGetTileB(x, y);
+		if (t != tb) {
+			mapSetTile(x, y, tb);
+			ClientboundPacket packet;
+			packet.kind = ClientboundPacket::Kind::Claim;
+			packet.a = x;
+			packet.b = y;
+			packet.c = tb;
+			serverSendPacketAll(packet);
 		}
 	}
 
@@ -142,6 +139,7 @@ void serverAcceptPacket(ServerboundPacket &packet, Connection &connection) {
 	switch (packet.kind) {
 		PCK(Claim);
 		PCK(Register);
+		PCK(Chat);
 	default:
 		assert(0);
 	}
@@ -198,5 +196,12 @@ PCK(Register) {
 		strncpy(packet.failmsg, "No space!", 20);
 		serverSendPacket(packet, connection);
 	}
+}
+PCK(Chat) {
+	ClientboundPacket p;
+	p.kind = ClientboundPacket::Kind::Chat;
+	strncpy(p.chat, packet.chat, 50);
+	p.chatAuthor = connection.id;
+	serverSendPacketAll(p);
 }
 #undef PCK

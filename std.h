@@ -13,6 +13,7 @@
 #include <span>
 #include <algorithm>
 #include <vector>
+#include <array>
 #define strncpy strncpy_s
 
 // T* with some extra safety
@@ -204,3 +205,8 @@ struct reusable_inplace_vector {
 		}
 	}
 };
+
+template<size_t N>
+errno_t strncpy(const std::array<char, N> &dest, const char *src, size_t n) {
+	return strncpy_s((char *)dest.data(), N, src, n);
+}

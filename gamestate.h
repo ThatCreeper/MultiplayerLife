@@ -6,15 +6,18 @@ extern int mouseTileX;
 extern int mouseTileY;
 extern int userId;
 
-constexpr float maxTickTime = 3;
+constexpr float maxTickTime = 2;
 extern float tickTime;
 
-extern int tiles[80 * 25];
-extern int tilesb[80 * 25]; // Only used on server
+extern int tiles[];
+extern int tilesb[]; // Only used on server
+#define FORMAPXY(x, y) for (int y = 0; y < 25; y++) for (int x = 0; x < 80; x++)
 
 extern bool isServer;
 extern unsigned __int64 serverSocket;
 extern Color colors[];
+extern std::array<char, 50> globalChat;
+extern int globalChatAuthor;
 
 extern int playerScores[6];
 

@@ -7,4 +7,5 @@ void clientRegister(char name[20]);
 void clientSendPacket(ServerboundPacket &packet);
 void clientAcceptPacket(ClientboundPacket &packet);
 void clientRecievePackets();
-void clientLife();
+void clientClaim(int x, int y);
+void clientUpdateChat();

@@ -32,4 +32,5 @@ void renderTicker() {
 void renderHud() {
 	renderUsers();
 	renderTicker();
+	DrawText(TextFormat("%.*s", 50, globalChat), 50, 50, 40, colors[globalChatAuthor]);
 }

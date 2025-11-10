@@ -3,7 +3,8 @@
 struct ServerboundPacket {
 	enum class Kind {
 		Claim,
-		Register
+		Register,
+		Chat
 	} kind;
 	union {
 		struct {
@@ -11,6 +12,7 @@ struct ServerboundPacket {
 			int b;
 		};
 		char name[20];
+		char chat[50];
 	};
 };
 
@@ -20,7 +22,8 @@ struct ClientboundPacket {
 		Id,
 		AddUser,
 		Fail,
-		Tick
+		Tick,
+		Chat
 	} kind;
 	union {
 		struct {
@@ -31,5 +34,9 @@ struct ClientboundPacket {
 		int id;
 		char name[20];
 		char failmsg[20];
+		struct {
+			int chatAuthor;
+			char chat[50];
+		};
 	};
 };
