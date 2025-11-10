@@ -4,8 +4,8 @@
 #include "client.h"
 #include "server.h"
 
-void gameTextEntry(char *out, int count, const char *prefix, Color bg, Color fg) {
-	int letterCount = strnlen(out, count);
+template <size_t N>
+void gameTextEntry(fixed_string<N> &out, const char *prefix, Color bg, Color fg) {
 	while (true) {
 		// Get char pressed (unicode character) on the queue
 		int key = GetCharPressed();
@@ -14,10 +14,9 @@ void gameTextEntry(char *out, int count, const char *prefix, Color bg, Color fg)
 		while (key > 0)
 		{
 			// NOTE: Only allow keys in range [32..125]
-			if ((key >= 32) && (key <= 125) && (letterCount < count))
+			if ((key >= 32) && (key <= 125))
 			{
-				out[letterCount] = (char)key;
-				letterCount++;
+				out.push_cback(key);
 			}
 
 			key = GetCharPressed();  // Check next character in the queue
@@ -25,9 +24,7 @@ void gameTextEntry(char *out, int count, const char *prefix, Color bg, Color fg)
 
 		if (IsKeyPressed(KEY_BACKSPACE))
 		{
-			letterCount--;
-			if (letterCount < 0) letterCount = 0;
-			out[letterCount] = '\0';
+			out.pop_cback();
 		}
 
 		if (IsKeyPressed(KEY_ENTER)) break;
@@ -35,7 +32,7 @@ void gameTextEntry(char *out, int count, const char *prefix, Color bg, Color fg)
 		BeginDrawing();
 		ClearBackground(bg);
 
-		DrawText(TextFormat("%s: \"%.*s\"", prefix, letterCount, out), 0, 0, 40, fg);
+		DrawText(TextFormat("%s: \"%s\"", prefix, out.bytes()), 0, 0, 40, fg);
 
 		EndDrawing();
 	}
@@ -60,33 +57,30 @@ void gamePickIsServer() {
 }
 
 void gameInitSteps() {
-	globalChat.fill(0);
-
 	gamePickIsServer();
 
-	char name[20] = "\0";
-	gameTextEntry(name, 20, "Name", BLUE, WHITE);
+	fixed_string<21> name{ 0 };
+	gameTextEntry(name, "Name", BLUE, WHITE);
 
 	if (isServer) serverOpen();
 	else clientOpen("127.0.0.1");
 
-	clientRegister(name);
+	clientRegister(name.fake_ref_short());
 }
 
 void gameUpdateChat() {
 	// Get char pressed (unicode character) on the queue
 	int key = GetCharPressed();
 	bool updated = false;
-	int len = strnlen(globalChat.data(), 50);
+	int len = globalChat.length();
 
 	// Check if more characters have been pressed on the same frame
 	while (key > 0)
 	{
 		// NOTE: Only allow keys in range [32..125]
-		if ((key >= 32) && (key <= 125) && (len < 50))
+		if ((key >= 32) && (key <= 125) && (!globalChat.full()))
 		{
-			globalChat.at(len) = (char)key;
-			if (len < 49) globalChat.at(len + 1) = '\0';
+			globalChat.push_cback(key);
 			updated = true;
 		}
 
@@ -95,7 +89,7 @@ void gameUpdateChat() {
 
 	if (IsKeyPressed(KEY_BACKSPACE))
 	{
-		globalChat.at(std::min(49, len - 1)) = '\0';
+		globalChat.pop_cback();
 		updated = true;
 	}
 

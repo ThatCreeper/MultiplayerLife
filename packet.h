@@ -1,5 +1,7 @@
 #pragma once
 
+#include "std.h"
+
 struct ServerboundPacket {
 	enum class Kind {
 		Claim,
@@ -11,8 +13,8 @@ struct ServerboundPacket {
 			int a;
 			int b;
 		};
-		char name[20];
-		char chat[50];
+		fixed_string<20> name;
+		fixed_string<50> chat;
 	};
 };
 
@@ -32,11 +34,11 @@ struct ClientboundPacket {
 			int c;
 		};
 		int id;
-		char name[20];
-		char failmsg[20];
+		fixed_string<20> name;
+		fixed_string<20> failmsg;
 		struct {
 			int chatAuthor;
-			char chat[50];
+			fixed_string<50> chat;
 		};
 	};
 };

@@ -20,7 +20,7 @@ void renderUsers() {
 		int i = user.idx;
 		int y = 20 * (i % 3);
 		int x = (1600 / 4) * (i / 3);
-		DrawText(TextFormat("%s%s - %d", user.name, i == userId ? " (you)" : "", playerScores[i]), x, 500 + y, 20, colors[i]);
+		DrawText(TextFormat("%s%s - %d", user.name.bytes(), i == userId ? " (you)" : "", playerScores[i]), x, 500 + y, 20, colors[i]);
 	}
 }
 
@@ -32,5 +32,5 @@ void renderTicker() {
 void renderHud() {
 	renderUsers();
 	renderTicker();
-	DrawText(TextFormat("%.*s", 50, globalChat), 50, 50, 40, colors[globalChatAuthor]);
+	DrawText(TextFormat("%s", globalChat.bytes()), 50, 50, 40, colors[globalChatAuthor]);
 }

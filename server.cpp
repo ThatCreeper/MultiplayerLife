@@ -50,7 +50,7 @@ void serverRecievePackets() {
 		}
 		if (int e = WSAGetLastError(); e != WSAEWOULDBLOCK) {
 			auto user = users.Get(connection.id);
-			MessageBoxA(nullptr, TextFormat("%ull: %.*s Disconnect", clientSockets.index(connection), 20, user ? user->name : "(???)"), TextFormat("Conn error: %d", e), MB_OK);
+			MessageBoxA(nullptr, TextFormat("%ull: %s Disconnect", clientSockets.index(connection), user ? user->name.bytes() : "(???)"), TextFormat("Conn error: %d", e), MB_OK);
 			clientSockets.remove_safe_iter(connection); // This is fine(-ish) because it doesn't rearrange anything
 		}
 	}
@@ -163,7 +163,7 @@ PCK(Register) {
 		for (Users::User &user : users.users) {
 			ClientboundPacket packet;
 			packet.kind = ClientboundPacket::Kind::AddUser;
-			memcpy(packet.name, user.name, 20);
+			packet.name.copy_from(user.name);
 			if (user.idx == id) {
 				serverSendPacketAll(packet);
 			}
@@ -193,14 +193,14 @@ PCK(Register) {
 	else {
 		ClientboundPacket packet;
 		packet.kind = ClientboundPacket::Kind::Fail;
-		strncpy(packet.failmsg, "No space!", 20);
+		packet.failmsg.copy_from("No space!");
 		serverSendPacket(packet, connection);
 	}
 }
 PCK(Chat) {
 	ClientboundPacket p;
 	p.kind = ClientboundPacket::Kind::Chat;
-	strncpy(p.chat, packet.chat, 50);
+	p.chat.copy_from(packet.chat);
 	p.chatAuthor = connection.id;
 	serverSendPacketAll(p);
 }

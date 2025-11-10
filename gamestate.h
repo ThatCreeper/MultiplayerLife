@@ -16,7 +16,7 @@ extern int tilesb[]; // Only used on server
 extern bool isServer;
 extern unsigned __int64 serverSocket;
 extern Color colors[];
-extern std::array<char, 50> globalChat;
+extern fixed_string<51> globalChat;
 extern int globalChatAuthor;
 
 extern int playerScores[6];

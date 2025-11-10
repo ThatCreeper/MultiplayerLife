@@ -23,11 +23,11 @@ void clientOpen(const char *host) {
 	ioctlsocket(serverSocket, FIONBIO, &nonblock);
 }
 
-void clientRegister(char name[20]) {
+void clientRegister(const fixed_string<20> &name) {
 	assert(userId == -1);
 	ServerboundPacket packet;
 	packet.kind = ServerboundPacket::Kind::Register;
-	strncpy(packet.name, name, 20);
+	packet.name.copy_from(name);
 	clientSendPacket(packet);
 }
 
@@ -77,7 +77,7 @@ PCK(Claim) {
 	mapSetTile(packet.a, packet.b, packet.c);
 }
 PCK(Fail) {
-	MessageBoxA(nullptr, "Fail", TextFormat("%.*s", 20, packet.failmsg), MB_OK);
+	MessageBoxA(nullptr, "Fail", TextFormat("%.*s", 20, packet.failmsg.bytes()), MB_OK);
 	assert(0);
 }
 PCK(Id) {
@@ -94,7 +94,7 @@ PCK(Tick) {
 	}
 }
 PCK(Chat) {
-	strncpy(globalChat, packet.chat, 50);
+	globalChat.copy_from(packet.chat);
 	globalChatAuthor = packet.chatAuthor;
 }
 #undef PCK
@@ -111,6 +111,6 @@ void clientUpdateChat()
 {
 	ServerboundPacket packet;
 	packet.kind = ServerboundPacket::Kind::Chat;
-	strncpy(packet.chat, globalChat.data(), 49);
+	packet.chat.copy_from(globalChat);
 	clientSendPacket(packet);
 }

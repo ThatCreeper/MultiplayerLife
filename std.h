@@ -206,6 +206,110 @@ struct reusable_inplace_vector {
 	}
 };
 
+template <size_t N>
+struct fixed_string {
+public:
+	char buf[N];
+
+	fixed_string() = default;
+	fixed_string(char zero) {
+		clear();
+	}
+	template <size_t N1>
+		requires (N1 <= N)
+	fixed_string(const char(&s)[N1]) {
+		clear();
+		std::copy(s, s + N1, buf);
+	}
+	explicit fixed_string(const fixed_string<N + 1> &s) {
+		clear();
+		copy_from(s);
+	}
+	fixed_string(const fixed_string<N> &) = delete;
+	fixed_string(fixed_string<N> &&) = delete;
+	fixed_string<N> &operator =(const fixed_string<N> &) = delete;
+	fixed_string<N> &operator =(fixed_string<N> &&) = delete;
+
+	std::span<char, N> data() {
+		return buf;
+	}
+	std::span<const char, N> data() const {
+		return buf;
+	}
+	const char *bytes() const {
+		return buf;
+	}
+
+	template <size_t N1>
+		requires(N1 <= N)
+	void copy_from(const fixed_string<N1> &s) {
+		std::copy(s.bytes(), s.bytes() + N1, buf);
+	}
+	void copy_from(const fixed_string<N + 1> &s) {
+		assert(s[N] == '\0');
+		std::copy(s.bytes(), s.bytes() + N, buf);
+	}
+	template <size_t N1>
+		requires(N1 <= N)
+	void copy_from(const char(&s)[N1]) {
+		std::copy(s, s + N1, buf);
+	}
+	void copy_from(const char(&s)[N + 1]) {
+		assert(s[N] == '\0');
+		std::copy(s, s + N, buf);
+	}
+
+	char &operator[](size_t n) {
+		assert(n >= 0 && n < N);
+		return buf[n];
+	}
+
+	const char &operator[](size_t n) const {
+		assert(n >= 0 && n < N);
+		return buf[n];
+	}
+
+	size_t length() const {
+		for (int i = 0; i < N; i++) {
+			if (buf[i] == '\0') return i;
+		}
+		return N;
+	}
+
+	bool full() const {
+		return length() == N;
+	}
+
+	void push_cback(char c) {
+		size_t len = length();
+		if (len >= N - 1) return;
+		buf[len] = c;
+		if (len < N - 2) buf[len + 1] = '\0';
+	}
+
+	void pop_cback() {
+		size_t len = length();
+		if (len == 0) return;
+		buf[len - 1] = '\0';
+	}
+
+	void clear() {
+		std::fill(buf, buf + N, 0);
+	}
+
+	template <size_t N1>
+	bool equals(const fixed_string<N1> &other) {
+		if (length() != other.length()) return false;
+		return strncmp(bytes(), other.bytes(), std::min(N, N1)) == 0;
+	}
+
+	// NOT REAL!
+	const fixed_string<N - 1> &fake_ref_short() {
+		assert(buf[N - 1] == '\0');
+		return *reinterpret_cast<fixed_string<N - 1> *>(this);
+	}
+};
+
 template<size_t N>
 errno_t strncpy(const std::array<char, N> &dest, const char *src, size_t n) {
 	return strncpy_s((char *)dest.data(), N, src, n);

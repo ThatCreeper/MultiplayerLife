@@ -2,16 +2,16 @@
 
 Users users;
 
-std::optional<int> Users::Add(char name[20]) {
+std::optional<int> Users::Add(const fixed_string<20> &name) {
 	for (int i = 0; i < users.size(); i++) {
-		if (strncmp(users.try_at(i)->name, name, 20) == 0) {
+		if (users.try_at(i)->name.equals(name)) {
 			return i;
 		}
 	}
 	if (users.full()) return {};
 	int idx = users.size();
 	User &user = *users.try_emplace_back();
-	memcpy(user.name, name, 20);
+	user.name.copy_from(name);
 	user.idx = idx;
 	return idx;
 }
