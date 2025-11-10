@@ -9,6 +9,11 @@ reusable_inplace_vector<Connection, 5> clientSockets;
 const void *serverLoopbackData;
 size_t serverLoopbackSize;
 
+#define SEND_A_PACKET_ALL(kind, pck) serverSendPacketAll(ClientboundPacketKind::kind, &pck, sizeof(pck))
+#define SEND_A_PACKET(kind, pck, conn) serverSendPacket(ClientboundPacketKind::kind, &pck, sizeof(pck), conn)
+#define SEND_PACKET(kind, cons, conn) { ClientboundPacket##kind pkt_p cons; SEND_A_PACKET(kind, pkt_p, conn); }
+#define SEND_PACKET_ALL(kind, cons) { ClientboundPacket##kind pkt_p cons; SEND_A_PACKET_ALL(kind, pkt_p); }
+
 void serverOpen() {
 	WSADATA wsaData;
 	assert(!WSAStartup(MAKEWORD(2, 2), &wsaData));
@@ -127,12 +132,11 @@ void serverLife() {
 			packet.x = x;
 			packet.y = y;
 			packet.color = tb;
-			serverSendPacketAll(ClientboundPacketKind::Claim, &packet, sizeof(packet));
+			SEND_A_PACKET_ALL(Claim, packet);
 		}
 	}
 
-	ClientboundPacketTick packet;
-	serverSendPacketAll(ClientboundPacketKind::Tick, &packet, sizeof(packet));
+	SEND_PACKET_ALL(Tick, {});
 }
 
 void serverSendMap(Connection &connection) {
@@ -143,7 +147,7 @@ void serverSendMap(Connection &connection) {
 		packet.x = x;
 		packet.y = y;
 		packet.color = tile;
-		serverSendPacket(ClientboundPacketKind::Claim, &packet, sizeof(packet), connection);
+		SEND_A_PACKET(Claim, packet, connection);
 	}
 }
 
@@ -180,7 +184,7 @@ PCK(Claim) {
 		p.x = packet.x;
 		p.y = packet.y;
 		p.color = connection.id + 1;
-		serverSendPacketAll(ClientboundPacketKind::Claim, &p, sizeof(p));
+		SEND_A_PACKET_ALL(Claim, p);
 	}
 }
 PCK(Register) {
@@ -188,26 +192,22 @@ PCK(Register) {
 	auto id = users.Add(packet.name);
 	if (id) {
 		for (Users::User &user : users.users) {
-			ClientboundPacketAddUser packet;
+			ClientboundPacketAddUser packet{};
 			packet.name.copy_from(user.name);
 			if (user.idx == id) {
-				serverSendPacketAll(ClientboundPacketKind::AddUser, &packet, sizeof(packet));
+				SEND_A_PACKET_ALL(AddUser, packet);
 			}
 			else {
-				serverSendPacket(ClientboundPacketKind::AddUser, &packet, sizeof(packet), connection);
+				SEND_A_PACKET(AddUser, packet, connection);
 			}
 		}
 
-		ClientboundPacketId packet;
-		packet.id = *id;
 		connection.id = *id;
-		serverSendPacket(ClientboundPacketKind::Id, &packet, sizeof(packet), connection);
+		SEND_PACKET(Id, { .id = *id }, connection);
 		serverSendMap(connection);
 	}
 	else {
-		ClientboundPacketFail packet;
-		packet.failmsg.copy_from("No space!");
-		serverSendPacket(ClientboundPacketKind::Fail, &packet, sizeof(packet), connection);
+		SEND_PACKET(Fail, { .failmsg{"No space!"} }, connection);
 	}
 }
 PCK(Chat) {
@@ -215,6 +215,6 @@ PCK(Chat) {
 	ClientboundPacketChat p;
 	p.chat.copy_from(packet.chat);
 	p.chatauthor = connection.id;
-	serverSendPacketAll(ClientboundPacketKind::Chat, &p, sizeof(p));
+	SEND_A_PACKET_ALL(Chat, p);
 }
 #undef PCK
