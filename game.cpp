@@ -123,14 +123,12 @@ PCK(AddUser) {
 }
 PCK(Claim) {
 	PCKD(Claim);
-	if (GetRandomValue(0, 3) != 0) {
-		Particle p;
-		p.size = 0;
-		p.x = packet.x;
-		p.y = packet.y;
-		p.color = mapGetTile(p.x, p.y);
-		particles.try_push_replace(p);
-	}
+	Particle p;
+	p.size = 0;
+	p.x = packet.x;
+	p.y = packet.y;
+	p.color = mapGetTile(p.x, p.y);
+	particles.replace_push_replace(p);
 	mapSetTile(packet.x, packet.y, packet.color);
 }
 PCK(Fail) {

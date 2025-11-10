@@ -199,6 +199,14 @@ struct reusable_inplace_vector {
 		return **out;
 	}
 
+	optional_ref<T> replace_push_replace(const T &val) {
+		optional_ref<T> r1 = try_push_replace(val);
+		if (r1) return r1;
+		optional_ref<std::optional<T>> out = store.try_at(GetRandomValue(0, N - 1));
+		(*out) = val;
+		return **out;
+	}
+
 	std::optional<size_t> index(T &member) {
 		// this is kinda stupid but i don't want to do
 		// anything smarter so take that
