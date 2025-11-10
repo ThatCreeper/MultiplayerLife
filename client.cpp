@@ -74,6 +74,14 @@ PCK(AddUser) {
 	users.Add(packet.name);
 }
 PCK(Claim) {
+	if (GetRandomValue(0, 3) != 0) {
+		Particle p;
+		p.size = 0;
+		p.x = packet.a;
+		p.y = packet.b;
+		p.color = mapGetTile(p.x, p.y);
+		particles.try_push_replace(p);
+	}
 	mapSetTile(packet.a, packet.b, packet.c);
 }
 PCK(Fail) {

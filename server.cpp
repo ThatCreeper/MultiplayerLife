@@ -89,9 +89,9 @@ void serverLife() {
 	if (tickTime < maxTickTime) return;
 	tickTime = 0;
 
-	mapClearB();
+	mapClearC();
 	FORMAPXY(x, y) {
-#define T(a,b) mapGetTile(x+a,y+b)
+#define T(a,b) mapGetTileB(x+a,y+b)
 		int ns[] = { T(-1,-1), T(0,-1), T(1,-1),
 			         T(-1,0),  T(1,0),
 			         T(-1,1),  T(0,1),  T(1,1) };
@@ -101,14 +101,14 @@ void serverLife() {
 		int nT = 0;
 		for (int N : ns) n += (N != 0);
 		for (int N : ns) nT += N;
-		if (t && (n == 2 || n == 3)) mapSetTileB(x, y, t);
-		if (!t && n == 3) mapSetTileB(x, y, nT / n);
+		if (t && (n == 2 || n == 3)) mapSetTileC(x, y, t);
+		if (!t && n == 3) mapSetTileC(x, y, nT / n);
 	}
 	FORMAPXY(x, y) {
-		int t = mapGetTile(x, y);
-		int tb = mapGetTileB(x, y);
+		int t = mapGetTileB(x, y);
+		int tb = mapGetTileC(x, y);
 		if (t != tb) {
-			mapSetTile(x, y, tb);
+			mapSetTileB(x, y, tb);
 			ClientboundPacket packet;
 			packet.kind = ClientboundPacket::Kind::Claim;
 			packet.a = x;
@@ -147,8 +147,8 @@ void serverAcceptPacket(ServerboundPacket &packet, Connection &connection) {
 #undef PCK
 #define PCK(kind) void serverAcceptPacket##kind(ServerboundPacket &packet, Connection &connection)
 PCK(Claim) {
-	if (mapGetTile(packet.a, packet.b) == 0) {
-		mapSetTile(packet.a, packet.b, connection.id + 1);
+	if (mapGetTileB(packet.a, packet.b) == 0) {
+		mapSetTileB(packet.a, packet.b, connection.id + 1);
 		ClientboundPacket p;
 		p.kind = ClientboundPacket::Kind::Claim;
 		p.a = packet.a;

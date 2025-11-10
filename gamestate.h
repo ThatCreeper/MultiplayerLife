@@ -11,7 +11,16 @@ extern float tickTime;
 
 extern int tiles[];
 extern int tilesb[]; // Only used on server
+extern int tilesc[]; // Only used on server
 #define FORMAPXY(x, y) for (int y = 0; y < 25; y++) for (int x = 0; x < 80; x++)
+
+struct Particle {
+	int x;
+	int y;
+	float size;
+	int color;
+};
+extern reusable_inplace_vector<Particle, 200> particles;
 
 extern bool isServer;
 extern unsigned __int64 serverSocket;
@@ -28,4 +37,6 @@ void mapSetTile(int x, int y, int id);
 
 int mapGetTileB(int x, int y);
 void mapSetTileB(int x, int y, int id);
-void mapClearB();
+int mapGetTileC(int x, int y);
+void mapSetTileC(int x, int y, int id);
+void mapClearC();

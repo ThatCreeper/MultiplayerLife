@@ -10,6 +10,9 @@ float tickTime = 0;
 
 int tiles[80 * 25];
 int tilesb[80 * 25]; // Only used on server
+int tilesc[80 * 25]; // Only used on server
+
+reusable_inplace_vector<Particle, 200> particles;
 
 bool isServer = false;
 unsigned __int64 serverSocket;
@@ -51,13 +54,29 @@ void mapSetTile(int x, int y, int id) {
 }
 
 int mapGetTileB(int x, int y) {
+	x = mapWrapX(x);
+	y = mapWrapY(y);
 	return tilesb[y * 80 + x];
 }
 
 void mapSetTileB(int x, int y, int id) {
+	x = mapWrapX(x);
+	y = mapWrapY(y);
 	tilesb[y * 80 + x] = id;
 }
 
-void mapClearB() {
-	memset(tilesb, 0, sizeof(tilesb));
+int mapGetTileC(int x, int y) {
+	x = mapWrapX(x);
+	y = mapWrapY(y);
+	return tilesc[y * 80 + x];
+}
+
+void mapSetTileC(int x, int y, int id) {
+	x = mapWrapX(x);
+	y = mapWrapY(y);
+	tilesc[y * 80 + x] = id;
+}
+
+void mapClearC() {
+	memset(tilesc, 0, sizeof(tilesc));
 }

@@ -6,6 +6,7 @@
 #include "net.h"
 
 int main() {
+	SetConfigFlags(FLAG_VSYNC_HINT);
 	InitWindow(1600, 560, "cade game");
 	
 	gameInitSteps();

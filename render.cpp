@@ -4,14 +4,22 @@
 #include "user.h"
 
 void renderBoard() {
-	for (int y = 0; y < 25; y++) {
-		for (int x = 0; x < 80; x++) {
-			int tile = mapGetTile(x, y);
-			if (tile) DrawRectangle(x * 20, y * 20, 20, 20, colors[tile - 1]);
+	for (Particle &particle : particles) {
+		particle.size += GetFrameTime() * 80;
+	}
+	particles.remove_if([](const Particle &particle) { return particle.size >= 20; });
 
-			DrawRectangleLines(x * 20 + 1, y * 20 + 1, 19, 19,
-				(mouseTileX == x && mouseTileY == y) ? YELLOW : DARKGRAY);
-		}
+	FORMAPXY(x, y) {
+		int tile = mapGetTile(x, y);
+		if (tile) DrawRectangle(x * 20, y * 20, 20, 20, colors[tile - 1]);
+
+		DrawRectangleLines(x * 20 + 1, y * 20 + 1, 19, 19,
+			(mouseTileX == x && mouseTileY == y) ? YELLOW : Color{40, 40, 40, 255});
+	}
+	for (const Particle &particle : particles) {
+		int s = 20 - particle.size;
+		DrawRectangle(particle.x * 20 + (20 - s) / 2, particle.y * 20 + (20 - s) / 2, s, s,
+			particle.color == 0 ? BLACK : colors[particle.color - 1]);
 	}
 }
 

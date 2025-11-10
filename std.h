@@ -95,6 +95,13 @@ struct inplace_vector {
 		return *out;
 	}
 
+	optional_ref<T> try_push_back(const T &val) {
+		if (full()) return {};
+		T *out = &values[count++];
+		new(out) T(val);
+		return *out;
+	}
+
 	bool full() const {
 		return count >= N;
 	}
@@ -174,6 +181,21 @@ struct reusable_inplace_vector {
 		return **out;
 	}
 
+	optional_ref<T> try_push_replace(const T &val) {
+		if (full()) return {};
+		if (reusables > 0) {
+			for (std::optional<T> &member : store) {
+				if (member) continue;
+				member = val;
+				reusables--;
+				return *member;
+			}
+		}
+		optional_ref<std::optional<T>> out = store.try_emplace_back();
+		(*out) = val;
+		return **out;
+	}
+
 	std::optional<size_t> index(T &member) {
 		// this is kinda stupid but i don't want to do
 		// anything smarter so take that
@@ -201,6 +223,16 @@ struct reusable_inplace_vector {
 				member.reset();
 				reusables++;
 				return;
+			}
+		}
+	}
+
+	template <class F>
+	void remove_if(F f) {
+		for (std::optional<T> &member : store) {
+			if (member && f(*member)) {
+				member.reset();
+				reusables++;
 			}
 		}
 	}
