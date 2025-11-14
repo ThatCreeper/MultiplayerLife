@@ -2,7 +2,7 @@
 
 #include "packet.h"
 
-void clientOpen(const char *host);
+void clientOpen(const char *host, const char *port);
 void clientRegister(const fixed_string<20> &name);
 void clientSendPacket(ServerboundPacketKind packet, const void *data, size_t size);
 void clientAcceptPacket(ClientboundPacketKind packet);

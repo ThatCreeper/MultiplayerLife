@@ -38,6 +38,8 @@ void gameTextEntry(fixed_string<N> &out, const char *prefix, Color bg, Color fg)
 
 		EndDrawing();
 	}
+	BeginDrawing();
+	EndDrawing();
 }
 
 void gameUpdateChat() {
@@ -60,7 +62,10 @@ void gameUpdateChat() {
 
 	if (IsKeyPressed(KEY_BACKSPACE))
 	{
-		globalChat.pop_cback();
+		if (IsKeyDown(KEY_LEFT_CONTROL))
+			globalChat.clear();
+		else
+			globalChat.pop_cback();
 		updated = true;
 	}
 
@@ -86,11 +91,13 @@ void gamePickIsServer() {
 		DrawText("Press S to serve or C to connect", 0, 0, 40, WHITE);
 		EndDrawing();
 	}
+	BeginDrawing();
+	EndDrawing();
 }
 
 void gameLife() {
-	mouseTileX = std::clamp(GetMouseX() / 20, 0, 80);
-	mouseTileY = std::clamp(GetMouseY() / 20, 0, 25);
+	mouseTileX = std::clamp(GetMouseX() / 20, 0, 80 - 1);
+	mouseTileY = std::clamp(GetMouseY() / 20, 0, 25 - 1);
 
 	if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
 		clientClaim(mouseTileX, mouseTileY);
@@ -101,12 +108,22 @@ void gameLife() {
 
 void gameInitSteps() {
 	gamePickIsServer();
+	fixed_string<15>::cstr addr;
+	fixed_string<5>::cstr port{ "9142" };
+	if (!isServer) {
+		while (addr.length() == 0) {
+			gameTextEntry(addr, "IP Address", GREEN, WHITE);
+		}
+		while (port.length() == 0) {
+			gameTextEntry(port, "Port", PURPLE, WHITE);
+		}
+	}
 
 	fixed_string<20>::cstr name;
 	gameTextEntry(name, "Name", BLUE, WHITE);
 
 	if (isServer) serverOpen();
-	else clientOpen("127.0.0.1");
+	else clientOpen(addr.bytes(), port.bytes());
 
 	clientRegister(name.fake_ref_short());
 }

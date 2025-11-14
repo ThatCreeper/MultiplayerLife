@@ -70,6 +70,7 @@ void serverRecievePackets() {
 
 void serverSendPacket(ClientboundPacketKind packet, const void *data, size_t size, Connection &connection) {
 	assert(isServer);
+	std::println("S-> {} (->{})\n  \\_{}", (int)packet, connection.id, size);
 	void clientAcceptPacketLoopback(ClientboundPacketKind, const void *, size_t);
 	if (&connection == &loopbackConnection) {
 		clientAcceptPacketLoopback(packet, data, size);
@@ -82,14 +83,14 @@ void serverSendPacket(ClientboundPacketKind packet, const void *data, size_t siz
 
 void serverSendPacketAll(ClientboundPacketKind packet, const void *data, size_t size) {
 	assert(isServer);
-	void clientAcceptPacketLoopback(ClientboundPacketKind, const void *, size_t);
-	clientAcceptPacketLoopback(packet, data, size);
+	serverSendPacket(packet, data, size, loopbackConnection);
 	for (Connection &connection : clientSockets) {
 		serverSendPacket(packet, data, size, connection);
 	}
 }
 
 void serverRecieve(void *out, size_t size, Connection &connection) {
+	std::println("  \\_{}", size);
 	if (&connection == &loopbackConnection) {
 		assert(serverLoopbackSize == size);
 		std::copy((char *)serverLoopbackData, (char *)serverLoopbackData + size, (char *)out);
@@ -166,6 +167,7 @@ void serverAcceptPacketLoopback(ServerboundPacketKind packet, const void *data, 
 		break
 void serverAcceptPacket(ServerboundPacketKind packet, Connection &connection) {
 	assert(isServer);
+	std::println("S<- {}", (int)packet);
 	switch (packet) {
 		PCK(Claim);
 		PCK(Register);

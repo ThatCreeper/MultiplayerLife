@@ -9,7 +9,7 @@ size_t clientLoopbackSize;
 #define SEND_A_PACKET(kind, pck) clientSendPacket(ServerboundPacketKind::kind, &pck, sizeof(pck))
 #define SEND_PACKET(kind, ...) { ServerboundPacket##kind pck_s __VA_ARGS__; SEND_A_PACKET(kind, pck_s); }
 
-void clientOpen(const char *host) {
+void clientOpen(const char *host, const char *port) {
 	WSADATA wsaData;
 	assert(!WSAStartup(MAKEWORD(2, 2), &wsaData));
 	addrinfo *result = nullptr;
@@ -18,7 +18,7 @@ void clientOpen(const char *host) {
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
-	assert(!getaddrinfo(host, "9142", &hints, &result));
+	assert(!getaddrinfo(host, port, &hints, &result));
 	serverSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 	assert(serverSocket != INVALID_SOCKET);
 	assert(connect(serverSocket, result->ai_addr, static_cast<int>(result->ai_addrlen)) != SOCKET_ERROR);
@@ -36,6 +36,7 @@ void clientRegister(const fixed_string<20> &name) {
 }
 
 void clientSendPacket(ServerboundPacketKind packet, const void *data, size_t size) {
+	std::println("C-> {}\n  \\_{}", (int)packet, size);
 	void serverAcceptPacketLoopback(ServerboundPacketKind, const void *, size_t);
 	if (isServer)
 		serverAcceptPacketLoopback(packet, data, size);
@@ -52,7 +53,7 @@ void clientAcceptPacketLoopback(ClientboundPacketKind packet, const void *data, 
 }
 
 void clientRecieve(void *out, size_t size) {
-	//std::println("<- {}", size);
+	std::println("  \\_{}", size);
 	if (isServer) {
 		assert(size == clientLoopbackSize);
 		std::copy((char *)clientLoopbackData, (char *)clientLoopbackData + size, (char *)out);
@@ -68,7 +69,7 @@ void clientRecieve(void *out, size_t size) {
 		clientAcceptPacket##kind(); \
 		break
 void clientAcceptPacket(ClientboundPacketKind packet) {
-	//std::println("{}", (int)packet);
+	std::println("C<- {}", (int)packet);
 	switch (packet) {
 		PCK(AddUser);
 		PCK(Claim);
